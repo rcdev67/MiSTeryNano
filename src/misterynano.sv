@@ -108,6 +108,7 @@ module misterynano #(
 */
        
 wire [5:0] leds;      // control leds with positive logic
+wire [3:0] atarist_leds;
 assign leds_n = ~leds;
 
 wire sys_resetn;
@@ -513,9 +514,13 @@ wire [7:0] parallel_data_in_int = EXTERNAL_PARPORT?parallel_data_in:
 		   ~{ db9_port2[0],db9_port2[1],db9_port2[2],db9_port2[3],
 			  db9_port3[0],db9_port3[1],db9_port3[2],db9_port3[3] };   
   
+// the reset release of the ST. Pulled out of the instantiation so it can be
+// observed on a LED, see DEBUG_LEDS below
+wire resb = !system_reset[0] && !reset && !por && ram_ready && flash_ready && sd_ready;
+
 atarist atarist (
     .clk_32(clk32),
-    .resb(!system_reset[0] && !reset && !por && ram_ready && flash_ready && sd_ready),       // user reset button
+    .resb(resb),       // user reset button
     .porb(!por),
 
     // video output
@@ -621,7 +626,7 @@ atarist atarist (
     .ram_data_in(mdout),
     .ram_data_out(mdin),
 
-    .leds(leds[3:0])     // HDD 1:0 / FDC 1:0
+    .leds(atarist_leds)     // HDD 1:0 / FDC 1:0
   );
   
 /* ------------ expand audio to 16 bits and apply volume adjustment ------------ */
@@ -684,7 +689,32 @@ video video (
 
 // -------------------------- SD card -------------------------------
 
+`ifdef DEBUG_LEDS
+// Diagnostic build for boards where the ST does not start. Replaces the two
+// MCU controlled LEDs and the two ACSI LEDs, keeps the two floppy LEDs:
+//   leds[5] = ST has been released from reset
+//   leds[4] = all memory subsystems report ready
+//   leds[3] = the chipset requested at least one ROM read (CPU fetched)
+//   leds[2] = ROM read activity, toggles every 512k accesses
+//   leds[1:0] = floppy select as usual (both lit = YM2149 port A never written)
+// Meant to be used without an MCU attached.
+reg        rom_seen;
+reg [19:0] rom_cnt;
+always @(posedge clk32) begin
+   if(!resb) begin
+      rom_seen <= 1'b0;
+      rom_cnt  <= 20'd0;
+   end else if(!rom_n) begin
+      rom_seen <= 1'b1;
+      rom_cnt  <= rom_cnt + 20'd1;
+   end
+end
+assign leds[5:4] = { resb, ram_ready && flash_ready && sd_ready };
+assign leds[3:0] = { rom_seen, rom_cnt[19], atarist_leds[1:0] };
+`else
 assign leds[5:4] = system_leds[1:0];
+assign leds[3:0] = atarist_leds;
+`endif
 
 // Give MCU some time to open a default disk image before booting the core
 // image_size != 0 means card is initialized. Wait up to 2 seconds for this before
