@@ -97,6 +97,7 @@ module atarist (
 
 	// TOS ROM interface
 	output wire		   rom_n, 
+	input wire		   rom_busy,   // flash read still in progress
 	output wire [23:1] rom_addr,
 	input wire [15:0]  rom_data_out,
 				
@@ -200,6 +201,40 @@ wire [15:0] blitter_data_out;
 wire [15:0] dma_data_out;
 
 assign rom_addr = mbus_a; // cpu_a;
+
+// The TOS ROM lives in serial flash and a read takes 240-320ns. That is not
+// guaranteed to fit into the fixed ST bus cycle: on a slower board the CPU
+// latches the idle bus (all ones) instead of the ROM contents. During the
+// reset vector fetch this yields an invalid SSP and PC, and the 68000 stops
+// with a double bus fault before executing a single instruction of TOS.
+//
+// Withhold DTACK until the flash controller has delivered, so the CPU simply
+// inserts wait states. Where the flash is fast enough this costs nothing.
+reg  rom_wait;
+reg  rom_busy_s, rom_busy_ss, rom_busy_seen, rom_n_d;
+always @(posedge clk_32) begin
+   if(!porb) begin
+      rom_wait      <= 1'b0;
+      rom_busy_seen <= 1'b0;
+      rom_n_d       <= 1'b1;
+      rom_busy_s    <= 1'b0;
+      rom_busy_ss   <= 1'b0;
+   end else begin
+      rom_busy_s  <= rom_busy;     // two stage sync from the 100MHz flash clock
+      rom_busy_ss <= rom_busy_s;
+      rom_n_d     <= rom_n;
+
+      if(rom_n)
+        rom_wait <= 1'b0;                       // no ROM cycle active
+      else if(rom_n_d && !rom_n) begin
+        rom_wait      <= 1'b1;                  // cycle starts, hold DTACK
+        rom_busy_seen <= 1'b0;
+      end else if(rom_wait) begin
+        if(rom_busy_ss)        rom_busy_seen <= 1'b1;
+        else if(rom_busy_seen) rom_wait      <= 1'b0;   // data has arrived
+      end
+   end
+end
    
 wire [7:0] snd_data_out;  
    
@@ -239,7 +274,7 @@ wire [15:0] mbus_dout = !rdat_n ? shifter_dout :
                         ~rdy_i ? dma_data_out :
                         cpu_dout;
 
-wire        dtack_n = mcu_dtack_n_adj & ~mfp_dtack & blitter_dtack_n;
+wire        dtack_n = (mcu_dtack_n_adj & ~mfp_dtack & blitter_dtack_n) | rom_wait;
 `else
 // combined bus signals
 wire        fc0 = cpu_fc0;
@@ -255,7 +290,7 @@ wire [15:0] mbus_dout = !rdat_n ? shifter_dout :
                         ~rdy_i ? dma_data_out :
                         cpu_dout;
 
-wire        dtack_n = mcu_dtack_n_adj & ~mfp_dtack;
+wire        dtack_n = (mcu_dtack_n_adj & ~mfp_dtack) | rom_wait;
 
 // remove blitter from br/bg/bgack chains (keeping some of the blitter signal names)
 assign blitter_br_n = 1'b1;

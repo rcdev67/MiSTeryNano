@@ -145,12 +145,13 @@ wire [23:1] rom_addr;
 wire [15:0] rom_dout;
 
 wire flash_ready;
+wire flash_busy;
 
 flash flash (
     .clk(flash_clk),
     .resetn(!por),
     .ready(flash_ready),
-    .busy(),
+    .busy(flash_busy),
 
     // cpu expects ROM to start at $fc0000 and it is in fact is at $100000 in
     // cpu expects ROM to start at $fc0000 and it is in fact is at $100000 in
@@ -601,6 +602,7 @@ atarist atarist (
 
     // interface to ROM
     .rom_n(rom_n),
+    .rom_busy(flash_busy),
     .rom_addr(rom_addr),
     .rom_data_out(rom_dout),
 
