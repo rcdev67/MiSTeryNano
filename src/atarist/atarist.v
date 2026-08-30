@@ -97,11 +97,25 @@ module atarist (
 
 	// TOS ROM interface
 	output wire		   rom_n, 
+	input wire		   rom_busy,   // flash read still in progress
 	output wire [23:1] rom_addr,
 	input wire [15:0]  rom_data_out,
 				
 	// export all LEDs
-	output wire [3:0]  leds
+	output wire [3:0]  leds,
+
+	// diagnostic outputs
+	output wire	   cpu_halted,   // double bus fault
+	output wire [23:1] dbg_cpu_a,
+	output wire	   dbg_berr_n,
+	output reg  [63:0] dbg_vec,     // first four words the CPU read after reset
+	output reg  [23:1] dbg_a0,      // address of the very first bus cycle
+	output reg  [23:1] dbg_roma,    // address of the first ROM selected cycle
+	output reg	   dbg_roma_set,
+	output reg  [15:0] dbg_rom_dout, // rom_data_out during that cycle
+	output reg	   dbg_busy_ever,
+	output reg	   dbg_wait_ever,
+	output reg  [7:0]  dbg_wait_max
 );
 
 // registered reset signals
@@ -200,6 +214,37 @@ wire [15:0] blitter_data_out;
 wire [15:0] dma_data_out;
 
 assign rom_addr = mbus_a; // cpu_a;
+
+// The TOS ROM lives in serial flash and a read takes 240-320ns, which is not
+// guaranteed to fit into the fixed ST bus cycle. Withhold DTACK until the
+// flash controller has delivered, so the CPU simply waits instead of latching
+// the idle bus (all ones). Without this the reset vector fetch can return
+// FFFFFFFF, which halts the 68000 with a double bus fault.
+reg  rom_wait;
+reg  rom_busy_s, rom_busy_ss, rom_busy_seen, rom_n_d;
+always @(posedge clk_32) begin
+   if(!porb) begin
+      rom_wait      <= 1'b0;
+      rom_busy_seen <= 1'b0;
+      rom_n_d       <= 1'b1;
+      rom_busy_s    <= 1'b0;
+      rom_busy_ss   <= 1'b0;
+   end else begin
+      rom_busy_s  <= rom_busy;     // two stage sync from the 100MHz flash clock
+      rom_busy_ss <= rom_busy_s;
+      rom_n_d     <= rom_n;
+
+      if(rom_n)
+        rom_wait <= 1'b0;                       // no ROM cycle active
+      else if(rom_n_d && !rom_n) begin
+        rom_wait      <= 1'b1;                  // cycle starts, hold DTACK
+        rom_busy_seen <= 1'b0;
+      end else if(rom_wait) begin
+        if(rom_busy_ss)          rom_busy_seen <= 1'b1;
+        else if(rom_busy_seen)   rom_wait      <= 1'b0;   // data has arrived
+      end
+   end
+end
    
 wire [7:0] snd_data_out;  
    
@@ -239,7 +284,7 @@ wire [15:0] mbus_dout = !rdat_n ? shifter_dout :
                         ~rdy_i ? dma_data_out :
                         cpu_dout;
 
-wire        dtack_n = mcu_dtack_n_adj & ~mfp_dtack & blitter_dtack_n;
+wire        dtack_n = (mcu_dtack_n_adj & ~mfp_dtack & blitter_dtack_n) | rom_wait;
 `else
 // combined bus signals
 wire        fc0 = cpu_fc0;
@@ -255,7 +300,7 @@ wire [15:0] mbus_dout = !rdat_n ? shifter_dout :
                         ~rdy_i ? dma_data_out :
                         cpu_dout;
 
-wire        dtack_n = mcu_dtack_n_adj & ~mfp_dtack;
+wire        dtack_n = (mcu_dtack_n_adj & ~mfp_dtack) | rom_wait;
 
 // remove blitter from br/bg/bgack chains (keeping some of the blitter signal names)
 assign blitter_br_n = 1'b1;
@@ -463,6 +508,66 @@ wire mcu_dtack_n_adj =
 	 (as_n_cnt<7)?1'b1:  // suppress dtack at begin of cycle
 	 mcu_dtack_n;
 
+wire cpu_haltedn;
+assign cpu_halted = !cpu_haltedn;
+assign dbg_cpu_a  = cpu_a;
+assign dbg_berr_n = berr_n;
+
+// Capture the four words of the reset vector fetch as the CPU actually sees
+// them. Should read 602E0104 00FC0030 for a 192k TOS mapped at FC0000.
+reg [2:0] dbg_vec_cnt;
+reg       dbg_as_nD;
+reg       dbg_a0_set;
+reg [7:0] dbg_wait_cnt;
+reg       dbg_dout_set;
+always @(posedge clk_32) begin
+   if(!porb) begin
+      dbg_vec      <= 64'd0;
+      dbg_vec_cnt  <= 3'd0;
+      dbg_as_nD    <= 1'b1;
+      dbg_a0       <= 23'd0;
+      dbg_a0_set   <= 1'b0;
+      dbg_roma     <= 23'd0;
+      dbg_roma_set <= 1'b0;
+      dbg_rom_dout <= 16'd0;
+      dbg_busy_ever<= 1'b0;
+      dbg_wait_ever<= 1'b0;
+      dbg_wait_max <= 8'd0;
+      dbg_wait_cnt <= 8'd0;
+      dbg_dout_set <= 1'b0;
+   end else begin
+      // does the flash controller actually start, and does its data show up?
+      if(rom_busy_ss) dbg_busy_ever <= 1'b1;
+      if(rom_wait) begin
+         dbg_wait_ever <= 1'b1;
+         if(dbg_wait_cnt != 8'hff) dbg_wait_cnt <= dbg_wait_cnt + 8'd1;
+      end else begin
+         if(dbg_wait_cnt > dbg_wait_max) dbg_wait_max <= dbg_wait_cnt;
+         dbg_wait_cnt <= 8'd0;
+      end
+      // capture rom_data_out at the moment the wait logic releases the CPU,
+      // i.e. when the flash controller reports the data as ready
+      if(rom_wait && rom_busy_seen && !rom_busy_ss && !dbg_dout_set) begin
+         dbg_rom_dout <= rom_data_out;
+         dbg_dout_set <= 1'b1;
+      end
+      // which address does the CPU request first, and is ROM ever selected?
+      if(!cpu_as_n && !dbg_a0_set) begin
+         dbg_a0     <= cpu_a;
+         dbg_a0_set <= 1'b1;
+      end
+      if(!cpu_as_n && !rom_n && !dbg_roma_set) begin
+         dbg_roma     <= cpu_a;
+         dbg_roma_set <= 1'b1;
+      end
+      dbg_as_nD <= cpu_as_n;
+      if(cpu_as_n && !dbg_as_nD && dbg_vec_cnt != 3'd4) begin
+         dbg_vec     <= { dbg_vec[47:0], cpu_din };
+         dbg_vec_cnt <= dbg_vec_cnt + 3'd1;
+      end
+   end
+end
+
 fx68k fx68k (
 	.clk        ( clk_32     ),
 	.extReset   ( reset      ),
@@ -481,7 +586,7 @@ fx68k fx68k (
 	.FC2        ( cpu_fc2   ),
 	.BGn        ( blitter_bg_n  ),
 	.oRESETn    ( cpu_reset_n_o ),
-	.oHALTEDn   (),
+	.oHALTEDn   ( cpu_haltedn ),
 	.DTACKn     ( dtack_n    ),
 	.VPAn       ( vpa_n      ),
 	.BERRn      ( berr_n     ),

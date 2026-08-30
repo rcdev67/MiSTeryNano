@@ -1,3 +1,5 @@
+`define DEBUG_LEDS
+`define DEBUG_LEDS
 /* 
     misterynano.sv 
 
@@ -109,6 +111,31 @@ module misterynano #(
        
 wire [5:0] leds;      // control leds with positive logic
 wire [3:0] atarist_leds;
+wire       cpu_halted;
+wire       midi_tx_int;
+wire [23:1] dbg_cpu_a;
+wire        dbg_berr_n;
+wire [63:0] dbg_vec;
+wire [23:1] dbg_a0;
+wire [23:1] dbg_roma;
+wire        dbg_roma_set;
+wire [15:0] dbg_rom_dout;
+wire        dbg_busy_ever, dbg_wait_ever;
+wire [7:0]  dbg_wait_max;
+
+// which flash address does the core actually present on the first ROM read?
+wire [21:0] flash_addr = { 3'b001, system_tos_slot, (system_chipset >= 2'd2)?1'b1:1'b0, rom_addr[17:1] };
+reg  [21:0] dbg_flash_a;
+reg         dbg_flash_a_set;
+always @(posedge clk32) begin
+   if(por) begin
+      dbg_flash_a     <= 22'd0;
+      dbg_flash_a_set <= 1'b0;
+   end else if(!rom_n && !dbg_flash_a_set) begin
+      dbg_flash_a     <= flash_addr;
+      dbg_flash_a_set <= 1'b1;
+   end
+end
 assign leds_n = ~leds;
 
 wire sys_resetn;
@@ -146,12 +173,13 @@ wire [23:1] rom_addr;
 wire [15:0] rom_dout;
 
 wire flash_ready;
+wire flash_busy;
 
 flash flash (
     .clk(flash_clk),
     .resetn(!por),
     .ready(flash_ready),
-    .busy(),
+    .busy(flash_busy),
 
     // cpu expects ROM to start at $fc0000 and it is in fact is at $100000 in
     // cpu expects ROM to start at $fc0000 and it is in fact is at $100000 in
@@ -462,7 +490,7 @@ sysctrl sysctrl (
         .system_port_joy(system_port_joy),
         .system_tos_slot(system_tos_slot),
         
-        .int_out_n(mcu_intn),
+        .int_out_n(sysctrl_intn),
         .int_in( { 4'b0000, sdc_int, 1'b0, hid_int, 1'b0 }),
         .int_ack( int_ack ),
 
@@ -544,7 +572,7 @@ atarist atarist (
 
     // MIDI UART
     .midi_rx(midi_in),
-    .midi_tx(midi_out),
+    .midi_tx(midi_tx_int),
 
     // serial/rs232
 	.serial_status       ( serial_status       ),
@@ -606,6 +634,7 @@ atarist atarist (
 
     // interface to ROM
     .rom_n(rom_n),
+    .rom_busy(flash_busy),
     .rom_addr(rom_addr),
     .rom_data_out(rom_dout),
 
@@ -626,7 +655,18 @@ atarist atarist (
     .ram_data_in(mdout),
     .ram_data_out(mdin),
 
-    .leds(atarist_leds)     // HDD 1:0 / FDC 1:0
+    .leds(atarist_leds),     // HDD 1:0 / FDC 1:0
+    .cpu_halted(cpu_halted),
+    .dbg_cpu_a(dbg_cpu_a),
+    .dbg_berr_n(dbg_berr_n),
+    .dbg_vec(dbg_vec),
+    .dbg_a0(dbg_a0),
+    .dbg_roma(dbg_roma),
+    .dbg_roma_set(dbg_roma_set),
+    .dbg_rom_dout(dbg_rom_dout),
+    .dbg_busy_ever(dbg_busy_ever),
+    .dbg_wait_ever(dbg_wait_ever),
+    .dbg_wait_max(dbg_wait_max)
   );
   
 /* ------------ expand audio to 16 bits and apply volume adjustment ------------ */
@@ -689,13 +729,15 @@ video video (
 
 // -------------------------- SD card -------------------------------
 
+wire sysctrl_intn;
+
 `ifdef DEBUG_LEDS
 // Diagnostic build for boards where the ST does not start. Replaces the two
 // MCU controlled LEDs and the two ACSI LEDs, keeps the two floppy LEDs:
 //   leds[5] = ST has been released from reset
 //   leds[4] = all memory subsystems report ready
 //   leds[3] = the chipset requested at least one ROM read (CPU fetched)
-//   leds[2] = ROM read activity, toggles every 512k accesses
+//   leds[2] = CPU halted (double bus fault)
 //   leds[1:0] = floppy select as usual (both lit = YM2149 port A never written)
 // Meant to be used without an MCU attached.
 reg        rom_seen;
@@ -710,8 +752,53 @@ always @(posedge clk32) begin
    end
 end
 assign leds[5:4] = { resb, ram_ready && flash_ready && sd_ready };
-assign leds[3:0] = { rom_seen, rom_cnt[19], atarist_leds[1:0] };
+assign leds[3:0] = { rom_seen, cpu_halted, atarist_leds[1:0] };
+
+// Capture the first bus error. A double bus fault halts the 68000, and the
+// address that was not acknowledged tells which component failed to respond.
+reg  [23:1] berr_addr;
+reg  [7:0]  berr_count;
+reg         berr_seen, berr_nD;
+always @(posedge clk32) begin
+   berr_nD <= dbg_berr_n;
+   if(!resb) begin
+      berr_addr  <= 23'd0;
+      berr_count <= 8'd0;
+      berr_seen  <= 1'b0;
+      berr_nD    <= 1'b1;
+   end else if(berr_nD && !dbg_berr_n) begin        // falling edge of BERRn
+      if(!berr_seen) berr_addr <= dbg_cpu_a;        // keep the first one
+      berr_seen <= 1'b1;
+      if(berr_count != 8'hff) berr_count <= berr_count + 8'd1;
+   end
+end
+
+// 16 hex digits, twice per second:
+//   [0]     resb, memories ready, rom_seen, cpu_halted
+//   [1]     0, 0, 0, berr_seen
+//   [2:3]   number of bus errors (saturating)
+//   [4:9]   address of the first bus error
+//   [10:15] address the CPU is currently driving
+//   [16:31] the four words read during the reset vector fetch
+wire dbg_tx;
+debug_uart debug_uart_inst (
+   .clk    ( clk32  ),
+   .resetn ( !por   ),
+   .value  ( { resb, ram_ready && flash_ready && sd_ready, rom_seen, cpu_halted,
+               dbg_busy_ever, dbg_wait_ever, berr_seen, dbg_roma_set,
+               dbg_wait_max,
+               dbg_rom_dout,
+               2'b00, dbg_flash_a,
+               berr_count,
+               dbg_vec } ),
+   .tx     ( dbg_tx )
+);
+// Debug UART goes to the MIDI OUT pin, which keeps the MCU interrupt line
+// free so an M0S Dock still works normally.
+assign midi_out = dbg_tx;   // MIDI OUT carries the debug console here
+assign mcu_intn = sysctrl_intn;
 `else
+assign mcu_intn = sysctrl_intn;
 assign leds[5:4] = system_leds[1:0];
 assign leds[3:0] = atarist_leds;
 `endif
