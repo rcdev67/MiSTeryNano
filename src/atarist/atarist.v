@@ -210,6 +210,12 @@ assign rom_addr = mbus_a; // cpu_a;
 //
 // Withhold DTACK until the flash controller has delivered, so the CPU simply
 // inserts wait states. Where the flash is fast enough this costs nothing.
+//
+// IMPORTANT, added after a control experiment: this does NOT fix the board it
+// was written for. Building the same design with this wait disabled -- only the
+// `| rom_wait` term removed -- boots just as well. What correlates with booting
+// on that board is the presence of unrelated debug logic, not this change. Keep
+// this as a robustness idea only; it is not a fix for a non booting board.
 reg  rom_wait;
 reg  rom_busy_s, rom_busy_ss, rom_busy_seen, rom_n_d;
 always @(posedge clk_32) begin
