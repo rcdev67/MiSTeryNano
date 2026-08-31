@@ -107,6 +107,7 @@ module misterynano #(
  6 -> 1   STROBE
 */
        
+wire       snd_step, snd_motor;
 wire [5:0] leds;      // control leds with positive logic
 assign leds_n = ~leds;
 
@@ -621,7 +622,9 @@ atarist atarist (
     .ram_data_in(mdout),
     .ram_data_out(mdin),
 
-    .leds(leds[3:0])     // HDD 1:0 / FDC 1:0
+    .leds(leds[3:0]),     // HDD 1:0 / FDC 1:0
+    .snd_step(snd_step),
+    .snd_motor(snd_motor)
   );
   
 /* ------------ expand audio to 16 bits and apply volume adjustment ------------ */
@@ -642,8 +645,28 @@ wire [15:0] audio_vol_r =
     audio16_r;
 
 // expose this audio to the toplevel to e.g. feed it into a dac
-assign audio[0] = audio_vol_l;
-assign audio[1] = audio_vol_r;
+// ---- floppy drive sound ----------------------------------------------
+wire signed [15:0] drive_snd;
+
+drive_sound drive_sound_inst (
+    .clk     ( clk32     ),
+    .resetn  ( !por      ),
+    .motor_on( snd_motor ),
+    .step    ( snd_step  ),
+    .volume  ( 2'd3      ),
+    .snd     ( drive_snd )
+);
+
+// saturate, so a loud game plus a seeking drive cannot wrap around
+wire signed [16:0] mix_l = $signed(audio_vol_l) + drive_snd;
+wire signed [16:0] mix_r = $signed(audio_vol_r) + drive_snd;
+wire signed [15:0] sat_l = (mix_l >  17'sd32767) ?  16'sd32767 :
+                           (mix_l < -17'sd32768) ? -16'sd32768 : mix_l[15:0];
+wire signed [15:0] sat_r = (mix_r >  17'sd32767) ?  16'sd32767 :
+                           (mix_r < -17'sd32768) ? -16'sd32768 : mix_r[15:0];
+
+assign audio[0] = sat_l;
+assign audio[1] = sat_r;
 
 video video (
 	     .clk_pixel(clk32),

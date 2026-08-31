@@ -71,6 +71,7 @@
         <File path="jt49/jt49_exp.v" type="file.verilog" enable="1"/>
         <File path="jt49/jt49_noise.v" type="file.verilog" enable="1"/>
         <File path="misc/hid.v" type="file.verilog" enable="1"/>
+        <File path="misc/drive_sound.v" type="file.verilog" enable="1"/>
         <File path="misc/mcu_spi.v" type="file.verilog" enable="1"/>
         <File path="misc/osd_u8g2.v" type="file.verilog" enable="1"/>
         <File path="misc/scandoubler.v" type="file.verilog" enable="1"/>

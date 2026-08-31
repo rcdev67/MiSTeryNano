@@ -27,6 +27,8 @@ module fdc1772 (
 	input            floppy_reset,
 	output           floppy_step,
 	input            floppy_motor,
+	output           floppy_motor_on, // spindle running, for drive sound
+
 	output           floppy_ready,
 
 	// interrupts
@@ -353,6 +355,7 @@ reg busy /* verilator public */;
 reg [3:0] motor_spin_up_sequence /* verilator public */;
 
 assign fd_motor = EXT_MOTOR ? floppy_motor : motor_on;
+assign floppy_motor_on = fd_motor;
 
 // consider spin up done either if the motor is not supposed to spin at all or
 // if it's supposed to run and has left the spin up sequence

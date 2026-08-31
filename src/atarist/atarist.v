@@ -101,7 +101,11 @@ module atarist (
 	input wire [15:0]  rom_data_out,
 				
 	// export all LEDs
-	output wire [3:0]  leds
+	output wire [3:0]  leds,
+
+	// drive activity, for sound emulation
+	output wire	   snd_step,   // one pulse per head step
+	output wire	   snd_motor   // spindle running
 );
 
 // registered reset signals
@@ -1067,8 +1071,9 @@ fdc1772 fdc1772 (
 	.floppy_drive   ( floppy_sel_exclusive ),
 	.floppy_side    ( floppy_side      ),
 	.floppy_reset   ( ~peripheral_reset),
-    .floppy_step    (                  ),
+    .floppy_step    ( snd_step         ),
     .floppy_motor   ( 1'b0             ),  // unused in ST
+    .floppy_motor_on( snd_motor        ),
 
 	// interrupts
 	.irq            ( fdc_irq          ),
