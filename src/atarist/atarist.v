@@ -999,7 +999,14 @@ end
 /* ------------------------------------- DMA ------------------------------------ */
 /* ------------------------------------------------------------------------------ */
 
-assign     leds[1:0] = floppy_sel ^ 2'b11;   
+assign     leds[1:0] = floppy_sel ^ 2'b11;
+
+// Drive sound follows actual data transfer. Neither motor_on nor drive select
+// work as a trigger: TOS polls drive A for disk changes at the desktop, which
+// keeps the FDC motor timeout from expiring and keeps the drive selected, so
+// both would hum forever. Sector requests only happen on a real access.
+wire       fdc_motor_on;
+assign     snd_motor = fdc_motor_on;   
 wire       fdc_drq;
 wire [1:0] fdc_addr;
 wire       fdc_sel;
@@ -1073,7 +1080,7 @@ fdc1772 fdc1772 (
 	.floppy_reset   ( ~peripheral_reset),
     .floppy_step    ( snd_step         ),
     .floppy_motor   ( 1'b0             ),  // unused in ST
-    .floppy_motor_on( snd_motor        ),
+    .floppy_motor_on( fdc_motor_on     ),
 
 	// interrupts
 	.irq            ( fdc_irq          ),

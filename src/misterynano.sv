@@ -651,7 +651,7 @@ wire signed [15:0] drive_snd;
 drive_sound drive_sound_inst (
     .clk     ( clk32     ),
     .resetn  ( !por      ),
-    .motor_on( snd_motor ),
+    .motor_on( 1'b1      ),   // TEST: Motor dauerhaft an
     .step    ( snd_step  ),
     .volume  ( 2'd3      ),
     .snd     ( drive_snd )
