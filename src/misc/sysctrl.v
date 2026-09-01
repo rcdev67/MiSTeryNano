@@ -47,6 +47,7 @@ module sysctrl (
   output reg [1:0]  system_scanlines,
   output reg [1:0]  system_volume,
   output reg [1:0]  system_screen,
+  output reg [1:0]  system_drive_snd,
   output reg [1:0]  system_floppy_wprot,
   output reg	    system_cubase_en,
   output reg [1:0]  system_port_mouse,
@@ -87,7 +88,10 @@ reg [7:0]  menu_rom_data;
 // generate hex e.g.:
 // gzip -n atarist.xml
 // xxd -c1 -p atarist.xml.gz > atarist_xml.hex
-reg [7:0] atarist_xml[1024];
+// 2048 rather than 1024: the compressed menu had grown to within 140 bytes of
+// the old limit, and one more entry pushed it past. menu_rom_addr is already
+// 12 bits wide, and a block RAM holds 16kbit, so this costs nothing.
+reg [7:0] atarist_xml[2048];
 `ifndef EFINIX
    initial $readmemh("atarist_xml.hex", atarist_xml);
 `else
@@ -124,6 +128,7 @@ always @(posedge clk) begin
       system_scanlines <= 2'b00;    // no scanlines
       system_volume <= 2'b00;       // mute
       system_screen <= 2'b00;       // normal video 
+      system_drive_snd <= 2'b11;    // drive sounds at full level
       system_floppy_wprot <= 2'b00; // floppy not write protected
       system_cubase_en <= 1'b0;     // no cubase dongle
       system_port_mouse <= 2'd0;    // mouse on usb -> db9 joystick
@@ -213,6 +218,7 @@ always @(posedge clk) begin
                     if(id == "A") system_volume <= data_in[1:0];
                     // Value "W": normal (0), overscan (1) or  wide (2)
                     if(id == "W") system_screen <= data_in[1:0];
+                    if(id == "D") system_drive_snd <= data_in[1:0];
                     // Value "P": floppy write protecion None(0), A(1), B(2) both(3)
                     if(id == "P") system_floppy_wprot <= data_in[1:0];
                     // Value "Q": enable (1) or disable (0) Cubase dongle(s)

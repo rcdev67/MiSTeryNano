@@ -30,15 +30,23 @@ reg [1:0] mouse_y;
 
 assign mouse = { mouse_btns, mouse_x, mouse_y };
 
-// limit the rate at which mouse movement data is sent to the
-// ikbd
+// Limit the rate at which mouse movement data is sent to the ikbd. This is the
+// quadrature rate the emulated 6301 has to sample: raising it makes the ikbd
+// misread the direction on fast movement, which looks like the pointer running
+// backwards. Whatever a high resolution mouse delivers has to be scaled down
+// on the MCU side, not clocked out faster here.
 reg [14:0] mouse_div;
 reg [3:0] state;
 reg [7:0] command;  
 reg [7:0] device;   // used for joystick
    
-reg [7:0] mouse_x_cnt;
-reg [7:0] mouse_y_cnt;
+// Pending movement, wide enough to survive a burst. At 8 bits this held only
+// +/-127 steps while a high resolution mouse can deliver thousands in the time
+// the ikbd needs to clock a few hundred out: the counter wrapped, -128 became
+// +127 and fast movement ran backwards. Nothing on the MCU side can prevent
+// that while more arrives than drains, it only postpones it.
+reg signed [15:0] mouse_x_cnt;
+reg signed [15:0] mouse_y_cnt;
 
 reg irq_enable;
 reg [5:0] db9_portD;
@@ -114,8 +122,9 @@ always @(posedge clk) begin
             // CMD 2: mouse data
             if(command == 8'd2) begin
                 if(state == 4'd0) mouse_btns <= data_in[1:0];
-                if(state == 4'd1) mouse_x_cnt <= mouse_x_cnt + data_in;
-                if(state == 4'd2) mouse_y_cnt <= mouse_y_cnt + data_in;
+                // data_in is a signed byte and has to be widened as one
+                if(state == 4'd1) mouse_x_cnt <= mouse_x_cnt + { {8{data_in[7]}}, data_in };
+                if(state == 4'd2) mouse_y_cnt <= mouse_y_cnt + { {8{data_in[7]}}, data_in };
             end
 
             // CMD 3: receive digital joystick data
@@ -135,26 +144,26 @@ always @(posedge clk) begin
       end else begin // if (data_in_strobe)
         mouse_div <= mouse_div + 15'd1;      
         if(mouse_div == 15'd0) begin
-            if(mouse_x_cnt != 8'd0) begin
-                if(mouse_x_cnt[7]) begin
-                    mouse_x_cnt <= mouse_x_cnt + 8'd1;
+            if(mouse_x_cnt != 16'sd0) begin
+                if(mouse_x_cnt[15]) begin
+                    mouse_x_cnt <= mouse_x_cnt + 16'sd1;
                     // 2 bit gray counter to emulate the mouse's light barriers
                     mouse_x[0] <=  mouse_x[1];
                     mouse_x[1] <= ~mouse_x[0];		  
                 end else begin
-                    mouse_x_cnt <= mouse_x_cnt - 8'd1;
+                    mouse_x_cnt <= mouse_x_cnt - 16'sd1;
                     mouse_x[0] <= ~mouse_x[1];
                     mouse_x[1] <=  mouse_x[0];
                 end	    
             end // if (mouse_x_cnt != 8'd0)
 	    
-            if(mouse_y_cnt != 8'd0) begin
-                if(mouse_y_cnt[7]) begin
-                    mouse_y_cnt <= mouse_y_cnt + 8'd1;
+            if(mouse_y_cnt != 16'sd0) begin
+                if(mouse_y_cnt[15]) begin
+                    mouse_y_cnt <= mouse_y_cnt + 16'sd1;
                     mouse_y[0] <=  mouse_y[1];
                     mouse_y[1] <= ~mouse_y[0];		  
                 end else begin
-                    mouse_y_cnt <= mouse_y_cnt - 8'd1;
+                    mouse_y_cnt <= mouse_y_cnt - 16'sd1;
                     mouse_y[0] <= ~mouse_y[1];
                     mouse_y[1] <=  mouse_y[0];
                 end	    
