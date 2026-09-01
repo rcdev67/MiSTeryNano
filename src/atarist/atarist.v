@@ -1006,10 +1006,15 @@ assign     leds[1:0] = floppy_sel ^ 2'b11;
 // keeps the FDC motor timeout from expiring and keeps the drive selected, so
 // both would hum forever. Sector requests only happen on a real access.
 wire       fdc_motor_on;
-// CONTROL: no sector comparison, just the request itself registered at the
-// source. Used to test whether loading sd_lba is what stops the core booting.
+// Follow the FDC's data request, not anything on the card interface. Every
+// signal over there -- the sector request, its acknowledge, the sector number
+// -- keeps reporting traffic with no disk inserted at all, so the hum never
+// stopped no matter which of them was used or how the threshold was set. drq
+// rises per byte moved between disk and CPU: it cannot happen without a disk
+// being read, which makes silence the default rather than something a
+// threshold has to achieve.
 reg        snd_motor_r;
-always @(posedge clk_32) snd_motor_r <= (|sd_rd) || (|sd_wr);
+always @(posedge clk_32) snd_motor_r <= fdc_drq;
 assign     snd_motor = snd_motor_r;
 wire       fdc_drq;
 wire [1:0] fdc_addr;
