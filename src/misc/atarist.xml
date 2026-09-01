@@ -73,6 +73,13 @@
 	<listentry label="Atari ST" value="1"/>
 	<listentry label="Amiga" value="2"/>
       </list>
+      <list label="Mouse cpi:" id="X" default="8">
+	<listentry label="400" value="4"/>
+	<listentry label="800" value="8"/>
+	<listentry label="1200" value="12"/>
+	<listentry label="1600" value="16"/>
+	<listentry label="3200" value="32"/>
+      </list>
       <list label="Joysticks:" id="U" default="1">
 	<listentry label="USB only" value="0"/>
 	<listentry label="1 Atari + USB" value="1"/>

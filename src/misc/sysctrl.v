@@ -88,7 +88,10 @@ reg [7:0]  menu_rom_data;
 // generate hex e.g.:
 // gzip -n atarist.xml
 // xxd -c1 -p atarist.xml.gz > atarist_xml.hex
-reg [7:0] atarist_xml[1024];
+// 2048 rather than 1024: the compressed menu had grown to within 140 bytes of
+// the old limit, and one more entry pushed it past. menu_rom_addr is already
+// 12 bits wide, and a block RAM holds 16kbit, so this costs nothing.
+reg [7:0] atarist_xml[2048];
 `ifndef EFINIX
    initial $readmemh("atarist_xml.hex", atarist_xml);
 `else
