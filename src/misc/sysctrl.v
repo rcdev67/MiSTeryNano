@@ -47,6 +47,7 @@ module sysctrl (
   output reg [1:0]  system_scanlines,
   output reg [1:0]  system_volume,
   output reg [1:0]  system_screen,
+  output reg [1:0]  system_drive_snd,
   output reg [1:0]  system_floppy_wprot,
   output reg	    system_cubase_en,
   output reg [1:0]  system_port_mouse,
@@ -124,6 +125,7 @@ always @(posedge clk) begin
       system_scanlines <= 2'b00;    // no scanlines
       system_volume <= 2'b00;       // mute
       system_screen <= 2'b00;       // normal video 
+      system_drive_snd <= 2'b11;    // drive sounds at full level
       system_floppy_wprot <= 2'b00; // floppy not write protected
       system_cubase_en <= 1'b0;     // no cubase dongle
       system_port_mouse <= 2'd0;    // mouse on usb -> db9 joystick
@@ -213,6 +215,7 @@ always @(posedge clk) begin
                     if(id == "A") system_volume <= data_in[1:0];
                     // Value "W": normal (0), overscan (1) or  wide (2)
                     if(id == "W") system_screen <= data_in[1:0];
+                    if(id == "D") system_drive_snd <= data_in[1:0];
                     // Value "P": floppy write protecion None(0), A(1), B(2) both(3)
                     if(id == "P") system_floppy_wprot <= data_in[1:0];
                     // Value "Q": enable (1) or disable (0) Cubase dongle(s)

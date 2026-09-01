@@ -131,6 +131,7 @@ wire [1:0] system_reset;   // reset and coldboot flag
 wire [1:0] system_scanlines;
 wire [1:0] system_volume;
 wire [1:0] system_screen;
+wire [1:0] system_drive_snd;
 wire [1:0] system_floppy_wprot;
 wire       system_cubase_en;
 wire [1:0] system_port_mouse;
@@ -457,6 +458,7 @@ sysctrl sysctrl (
         .system_scanlines(system_scanlines),
         .system_volume(system_volume),
         .system_screen(system_screen),
+        .system_drive_snd(system_drive_snd),
         .system_floppy_wprot(system_floppy_wprot),
         .system_port_mouse(system_port_mouse),
         .system_port_joy(system_port_joy),
@@ -651,9 +653,9 @@ wire signed [15:0] drive_snd;
 drive_sound drive_sound_inst (
     .clk     ( clk32     ),
     .resetn  ( !por      ),
-    .motor_on( 1'b1      ),   // TEST: Motor dauerhaft an
+    .motor_on( snd_motor ),   // sector transfers
     .step    ( snd_step  ),
-    .volume  ( 2'd3      ),
+    .volume  ( system_drive_snd ),
     .snd     ( drive_snd )
 );
 

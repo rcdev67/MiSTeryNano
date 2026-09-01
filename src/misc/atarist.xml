@@ -108,6 +108,12 @@
 	<listentry label="50%" value="2"/>
 	<listentry label="75%" value="3"/>
       </list>
+      <list label="Drive noise:" id="D" default="3">
+	<listentry label="Off" value="0"/>
+	<listentry label="33%" value="1"/>
+	<listentry label="66%" value="2"/>
+	<listentry label="100%" value="3"/>
+      </list>
       <list label="Volume:" id="A" default="1">
 	<listentry label="Mute" value="0"/>
 	<listentry label="33%" value="1"/>

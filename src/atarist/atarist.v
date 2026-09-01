@@ -1006,7 +1006,11 @@ assign     leds[1:0] = floppy_sel ^ 2'b11;
 // keeps the FDC motor timeout from expiring and keeps the drive selected, so
 // both would hum forever. Sector requests only happen on a real access.
 wire       fdc_motor_on;
-assign     snd_motor = fdc_motor_on;   
+// CONTROL: no sector comparison, just the request itself registered at the
+// source. Used to test whether loading sd_lba is what stops the core booting.
+reg        snd_motor_r;
+always @(posedge clk_32) snd_motor_r <= (|sd_rd) || (|sd_wr);
+assign     snd_motor = snd_motor_r;
 wire       fdc_drq;
 wire [1:0] fdc_addr;
 wire       fdc_sel;
