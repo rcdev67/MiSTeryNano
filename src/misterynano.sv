@@ -55,6 +55,11 @@ module misterynano #(
   // spare pins, used for 2nd DB9 joystick
   input [5:0]	spare = 6'b111111,
 
+  // external UART on the M0S connector, see uart_ext.v
+  output        uart_ext_en,
+  output        uart_ext_tx,
+  input         uart_ext_rx = 1'b1,
+
   // the parallel port of the ST only carries few signals
   output		parallel_strobe_oe,
   input			parallel_strobe_in = 1'b1, 
@@ -421,6 +426,33 @@ wire [7:0] serial_rx_available;
 wire       serial_rx_strobe;
 wire [7:0] serial_rx_data;
 
+// The RS232 port goes either to the companion MCU (through sysctrl) or to
+// the external UART, selected in the OSD. The side not selected sees an
+// empty FIFO, so the companion keeps working unchanged.
+wire [1:0] system_serial;
+wire       serial_ext = system_serial[0];
+wire       mcu_tx_strobe, mcu_rx_strobe, ext_tx_strobe, ext_rx_strobe;
+wire [7:0] mcu_rx_data, ext_rx_data;
+assign serial_tx_strobe = serial_ext ? ext_tx_strobe : mcu_tx_strobe;
+assign serial_rx_strobe = serial_ext ? ext_rx_strobe : mcu_rx_strobe;
+assign serial_rx_data   = serial_ext ? ext_rx_data   : mcu_rx_data;
+assign uart_ext_en = serial_ext;
+
+uart_ext uart_ext_inst (
+    .clk         ( clk32 ),
+    .resetn      ( !por ),
+    .enable      ( serial_ext ),
+    .bitrate     ( { serial_status[15:8], serial_status[23:16], serial_status[31:24] } ),
+    .tx_available( serial_ext ? serial_tx_available : 8'd0 ),
+    .tx_data     ( serial_tx_data ),
+    .tx_strobe   ( ext_tx_strobe ),
+    .rx_space    ( serial_rx_available ),
+    .rx_data     ( ext_rx_data ),
+    .rx_strobe   ( ext_rx_strobe ),
+    .txd         ( uart_ext_tx ),
+    .rxd         ( uart_ext_rx )
+);
+
 // time information for rtc received via NTP
 wire [11:0] rtc;   
    
@@ -436,12 +468,12 @@ sysctrl sysctrl (
 
 		// port io (used to expose rs232)
 	    .port_status(serial_status),
-		.port_out_available(serial_tx_available),
-        .port_out_strobe(serial_tx_strobe),
+		.port_out_available(serial_ext ? 8'd0 : serial_tx_available),
+        .port_out_strobe(mcu_tx_strobe),
 		.port_out_data(serial_tx_data),	 
-		.port_in_available(serial_rx_available),
-        .port_in_strobe(serial_rx_strobe),
-		.port_in_data(serial_rx_data),	 
+		.port_in_available(serial_ext ? 8'd0 : serial_rx_available),
+        .port_in_strobe(mcu_rx_strobe),
+		.port_in_data(mcu_rx_data),	 
 
 		.rtc(rtc),	 
 				 
@@ -463,6 +495,7 @@ sysctrl sysctrl (
         .system_floppy_wprot(system_floppy_wprot),
         .system_port_mouse(system_port_mouse),
         .system_port_joy(system_port_joy),
+        .system_serial(system_serial),
         .system_tos_slot(system_tos_slot),
         
         .int_out_n(mcu_intn),

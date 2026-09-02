@@ -104,7 +104,12 @@ wire spi_intn;
 // din, ss and clk are inputs coming from the MCU
 // onboard connection to on-board BL616 only newer 3921 assemblies 
 assign spi_dir = spi_io_dout;
-assign m0s[4:0] = { spi_intn, 3'bzzz, spi_io_dout };
+// With the onboard BL616 the M0S connector is free: when the OSD selects
+// the external serial port, pin 51 (m0s[4]) carries the UART's TX and
+// pin 41 (m0s[1]) its RX. Pin 56 (m0s[2]) stays untouched, since driving
+// it low would switch the SPI link to an external dock.
+wire uart_ext_en, uart_ext_tx;
+assign m0s[4:0] = { uart_ext_en ? uart_ext_tx : spi_intn, 3'bzzz, spi_io_dout };
 assign spi_irqn = spi_intn;
 
 // by default the internal SPI is being used. Once there is
@@ -181,6 +186,10 @@ misterynano misterynano (
   // spare pins, used for 2nd DB9 joystick
   .spare ( spare ),
 
+  .uart_ext_en ( uart_ext_en ),
+  .uart_ext_tx ( uart_ext_tx ),
+  .uart_ext_rx ( m0s[1] ),
+
   // mcu interface
   .mcu_sclk ( spi_io_clk  ),
   .mcu_csn  ( spi_io_ss   ),
@@ -226,7 +235,7 @@ pll_160m pll_hdmi (
                );
 
 flash_pll pll_flash (
-               .clkout(flash_clk),     // 100 Mhz
+               .clkout(flash_clk),     // 54 Mhz
 			   .clkoutp(mspi_clk),     // -"- shifted by 22.5 deg
                .lock(pll_lock_flash),
                .clkin(clk)

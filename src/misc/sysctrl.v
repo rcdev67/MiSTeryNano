@@ -52,6 +52,7 @@ module sysctrl (
   output reg	    system_cubase_en,
   output reg [1:0]  system_port_mouse,
   output reg [1:0]  system_port_joy,
+  output reg [1:0]  system_serial,   // 0 = companion MCU, 1 = external UART
   output reg	    system_tos_slot
 );
 
@@ -133,6 +134,7 @@ always @(posedge clk) begin
       system_cubase_en <= 1'b0;     // no cubase dongle
       system_port_mouse <= 2'd0;    // mouse on usb -> db9 joystick
       system_port_joy <= 2'd0;
+      system_serial <= 2'd0;        // RS232 goes to the companion
       system_tos_slot <= 1'b0;      // primary tos slot
    end else begin // if (reset)
       //  bring button state into local clock domain
@@ -227,6 +229,7 @@ always @(posedge clk) begin
                     if(id == "J") system_port_mouse <= data_in[1:0];
                     // Value "U": Joysticks USB only(0), 1 x Atari(1), 2 x Atari(2) 
                     if(id == "U") system_port_joy <= data_in[1:0];
+                    if(id == "E") system_serial <= data_in[1:0];
                     // Value "T": Primary(0) TOS slot or Secondary(1)
                     if(id == "T") system_tos_slot <= data_in[0];
                 end
