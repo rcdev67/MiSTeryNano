@@ -54,8 +54,24 @@ wire [1:0] data_out = {
     dspi_mode?dspi_out[0]:spi_di       
 };
 
-assign mspi_do   = output_en[1]?data_out[1]:1'bz;
-assign mspi_di   = output_en[0]?data_out[0]:1'bz;
+// The address/command mux above is eleven logic levels deep and went straight
+// to the pad: ~16ns in the timing model against a budget of 7ns at 100MHz, so
+// which placement met it was luck. Registering it on the rising edge is not the
+// answer either: the data then reaches the pad ~4ns after the edge, while the
+// flash samples on its own clock only ~1.5ns after it and wants 3ns hold.
+// SPI mode 0 done properly: outputs change on the falling edge, the flash
+// samples on the rising one -- ~7ns hold, ~5ns setup, independent of the PLL
+// phase, and still within the same state as before.
+reg [1:0] output_en_r, data_out_r;
+always @(negedge clk or negedge resetn) begin
+   if(!resetn) begin
+      output_en_r <= 2'b00; data_out_r <= 2'b11;
+   end else begin
+      output_en_r <= output_en; data_out_r <= data_out;
+   end
+end
+assign mspi_do   = output_en_r[1]?data_out_r[1]:1'bz;
+assign mspi_di   = output_en_r[0]?data_out_r[0]:1'bz;
 
 // use "fast read dual IO" command
 wire [7:0]   CMD_RD_DIO = 8'hbb;  
@@ -94,7 +110,15 @@ assign dspi_out =
 `ifdef VERILATOR
 wire [1:0] dspi_in = mspi_din;  
 `else
-wire [1:0] dspi_in = { mspi_do, mspi_di };  
+// Capture the flash's data pair on the falling edge of the clock. The W25Q64FV
+// drives new data as early as 1.5ns and as late as 7ns after the falling clock
+// edge, so sampling the pins directly at the next rising edge (half a period
+// later) was a race between the flash and the FPGA's input routing -- decided
+// by the placer, differently in every build. This register sees a full period
+// and the state machine still reads the pair one rising edge later, as before.
+reg [1:0] dspi_in_r;
+always @(negedge clk) dspi_in_r <= { mspi_do, mspi_di };
+wire [1:0] dspi_in = dspi_in_r;
 `endif
    
 always @(posedge clk or negedge resetn) begin
