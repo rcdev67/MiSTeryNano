@@ -471,7 +471,11 @@ sysctrl sysctrl (
 		.port_out_available(serial_ext ? 8'd0 : serial_tx_available),
         .port_out_strobe(mcu_tx_strobe),
 		.port_out_data(serial_tx_data),	 
-		.port_in_available(serial_ext ? 8'd0 : serial_rx_available),
+		// With the external port selected the companion must never see a full
+		// buffer: its port write spins until space appears ("may actually wait
+		// forever", sysctrl.c) in the task that also serves keyboard and mouse.
+		// So report space and drop what it writes; the strobe is not forwarded.
+		.port_in_available(serial_ext ? 8'd15 : serial_rx_available),
         .port_in_strobe(mcu_rx_strobe),
 		.port_in_data(mcu_rx_data),	 
 
