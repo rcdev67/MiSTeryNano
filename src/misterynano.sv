@@ -147,12 +147,13 @@ wire [23:1] rom_addr;
 wire [15:0] rom_dout;
 
 wire flash_ready;
+wire flash_busy;
 
 flash flash (
     .clk(flash_clk),
     .resetn(!por),
     .ready(flash_ready),
-    .busy(),
+    .busy(flash_busy),
 
     // cpu expects ROM to start at $fc0000 and it is in fact is at $100000 in
     // cpu expects ROM to start at $fc0000 and it is in fact is at $100000 in
@@ -604,6 +605,7 @@ atarist atarist (
 
     // interface to ROM
     .rom_n(rom_n),
+    .rom_busy(flash_busy),
     .rom_addr(rom_addr),
     .rom_data_out(rom_dout),
 
@@ -653,7 +655,7 @@ wire signed [15:0] drive_snd;
 drive_sound drive_sound_inst (
     .clk     ( clk32     ),
     .resetn  ( !por      ),
-    .motor_on( snd_motor ),   // sector transfers
+    .motor_on( snd_motor ),   // drive audibly working (gated in atarist.v)
     .step    ( snd_step  ),
     .volume  ( system_drive_snd ),
     .snd     ( drive_snd )
@@ -667,8 +669,15 @@ wire signed [15:0] sat_l = (mix_l >  17'sd32767) ?  16'sd32767 :
 wire signed [15:0] sat_r = (mix_r >  17'sd32767) ?  16'sd32767 :
                            (mix_r < -17'sd32768) ? -16'sd32768 : mix_r[15:0];
 
-assign audio[0] = sat_l;
-assign audio[1] = sat_r;
+// Registered as well: the saturating mix would otherwise be part of the
+// same combinational path into the audio clock domain (see drive_sound.v).
+reg signed [15:0] audio_l_r, audio_r_r;
+always @(posedge clk32) begin
+    audio_l_r <= sat_l;
+    audio_r_r <= sat_r;
+end
+assign audio[0] = audio_l_r;
+assign audio[1] = audio_r_r;
 
 video video (
 	     .clk_pixel(clk32),

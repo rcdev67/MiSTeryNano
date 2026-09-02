@@ -97,6 +97,7 @@ module atarist (
 
 	// TOS ROM interface
 	output wire		   rom_n, 
+	input wire		   rom_busy,   // flash read still in progress
 	output wire [23:1] rom_addr,
 	input wire [15:0]  rom_data_out,
 				
@@ -105,7 +106,7 @@ module atarist (
 
 	// drive activity, for sound emulation
 	output wire	   snd_step,   // one pulse per head step
-	output wire	   snd_motor   // spindle running
+	output wire	   snd_motor   // drive audibly working, see below
 );
 
 // registered reset signals
@@ -204,6 +205,46 @@ wire [15:0] blitter_data_out;
 wire [15:0] dma_data_out;
 
 assign rom_addr = mbus_a; // cpu_a;
+
+// The TOS ROM lives in serial flash and a read takes 240-320ns. That is not
+// guaranteed to fit into the fixed ST bus cycle: on a slower board the CPU
+// latches the idle bus (all ones) instead of the ROM contents. During the
+// reset vector fetch this yields an invalid SSP and PC, and the 68000 stops
+// with a double bus fault before executing a single instruction of TOS.
+//
+// Withhold DTACK until the flash controller has delivered, so the CPU simply
+// inserts wait states. Where the flash is fast enough this costs nothing.
+//
+// IMPORTANT, added after a control experiment: this does NOT fix the board it
+// was written for. Building the same design with this wait disabled -- only the
+// `| rom_wait` term removed -- boots just as well. What correlates with booting
+// on that board is the presence of unrelated debug logic, not this change. Keep
+// this as a robustness idea only; it is not a fix for a non booting board.
+reg  rom_wait;
+reg  rom_busy_s, rom_busy_ss, rom_busy_seen, rom_n_d;
+always @(posedge clk_32) begin
+   if(!porb) begin
+      rom_wait      <= 1'b0;
+      rom_busy_seen <= 1'b0;
+      rom_n_d       <= 1'b1;
+      rom_busy_s    <= 1'b0;
+      rom_busy_ss   <= 1'b0;
+   end else begin
+      rom_busy_s  <= rom_busy;     // two stage sync from the 100MHz flash clock
+      rom_busy_ss <= rom_busy_s;
+      rom_n_d     <= rom_n;
+
+      if(rom_n)
+        rom_wait <= 1'b0;                       // no ROM cycle active
+      else if(rom_n_d && !rom_n) begin
+        rom_wait      <= 1'b1;                  // cycle starts, hold DTACK
+        rom_busy_seen <= 1'b0;
+      end else if(rom_wait) begin
+        if(rom_busy_ss)        rom_busy_seen <= 1'b1;
+        else if(rom_busy_seen) rom_wait      <= 1'b0;   // data has arrived
+      end
+   end
+end
    
 wire [7:0] snd_data_out;  
    
@@ -243,7 +284,7 @@ wire [15:0] mbus_dout = !rdat_n ? shifter_dout :
                         ~rdy_i ? dma_data_out :
                         cpu_dout;
 
-wire        dtack_n = mcu_dtack_n_adj & ~mfp_dtack & blitter_dtack_n;
+wire        dtack_n = (mcu_dtack_n_adj & ~mfp_dtack & blitter_dtack_n) | rom_wait;
 `else
 // combined bus signals
 wire        fc0 = cpu_fc0;
@@ -259,7 +300,7 @@ wire [15:0] mbus_dout = !rdat_n ? shifter_dout :
                         ~rdy_i ? dma_data_out :
                         cpu_dout;
 
-wire        dtack_n = mcu_dtack_n_adj & ~mfp_dtack;
+wire        dtack_n = (mcu_dtack_n_adj & ~mfp_dtack) | rom_wait;
 
 // remove blitter from br/bg/bgack chains (keeping some of the blitter signal names)
 assign blitter_br_n = 1'b1;
@@ -1006,15 +1047,24 @@ assign     leds[1:0] = floppy_sel ^ 2'b11;
 // keeps the FDC motor timeout from expiring and keeps the drive selected, so
 // both would hum forever. Sector requests only happen on a real access.
 wire       fdc_motor_on;
-// Follow the FDC's data request, not anything on the card interface. Every
-// signal over there -- the sector request, its acknowledge, the sector number
-// -- keeps reporting traffic with no disk inserted at all, so the hum never
-// stopped no matter which of them was used or how the threshold was set. drq
-// rises per byte moved between disk and CPU: it cannot happen without a disk
-// being read, which makes silence the default rather than something a
-// threshold has to achieve.
+// The FDC's own motor line. fdc1772 models the WD1772 exactly here: the motor
+// starts on any type 1/2/3 command and stops ten index pulses -- two seconds
+// -- after the last one. That is the physical drive, and what the sound should
+// follow. Anything derived from the card interface reports traffic with no
+// disk inserted at all; the data request only shows sector transfers and so
+// misses seeks and the spin-down.
+// Heard = motor turning AND a command that moves data is executing. Both come
+// straight from the FDC: the motor line carries the WD1772's own two second
+// timeout, so a loaded program that stops issuing commands goes quiet by
+// itself; and the command type separates reading the disk from GEM checking
+// it at the desktop, which it does with seeks and force interrupts that keep
+// the motor alive but move nothing. No counting, no threshold: one AND, one
+// register, one bit out. (Measuring the data request's density instead worked
+// the same in principle but cost enough logic that eight placements in a row
+// failed to boot on this board.)
+wire       fdc_data_cmd;
 reg        snd_motor_r;
-always @(posedge clk_32) snd_motor_r <= fdc_drq;
+always @(posedge clk_32) snd_motor_r <= fdc_motor_on && fdc_data_cmd;
 assign     snd_motor = snd_motor_r;
 wire       fdc_drq;
 wire [1:0] fdc_addr;
@@ -1090,6 +1140,7 @@ fdc1772 fdc1772 (
     .floppy_step    ( snd_step         ),
     .floppy_motor   ( 1'b0             ),  // unused in ST
     .floppy_motor_on( fdc_motor_on     ),
+    .floppy_data_cmd( fdc_data_cmd     ),
 
 	// interrupts
 	.irq            ( fdc_irq          ),

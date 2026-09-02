@@ -37,8 +37,8 @@ module drive_sound #(
     parameter integer SPIN_LEN    = 3253,   // ... the hum, looped
     parameter integer MOTOR_LEN   = 11135,
     parameter integer CLICK_LEN   = 3257,   // one head step, then
-    parameter integer SEEK_SND_LEN= 13446,  // ... a run of them, looped
-    parameter integer SEEK_LEN    = 16703,
+    parameter integer SEEK_SND_LEN= 6723,   // ... a run of them, looped (halved: 420ms is
+    parameter integer SEEK_LEN    = 9980,   //     plenty for a loop and saves four block RAMs)
     // Gains follow the levels of the original recordings relative to each
     // other, anchored on the hum at the level the previous revision used.
     parameter [7:0]   STARTUP_GAIN = 8'd167,
@@ -50,7 +50,7 @@ module drive_sound #(
     input                     clk,
     input                     resetn,
 
-    input                     motor_on,    // spindle running
+    input                     motor_on,    // drive audibly working, a level
     input                     step,        // one clk wide pulse per head step
     input               [1:0] volume,      // 0 = off, 3 = loudest
 
@@ -98,18 +98,10 @@ localparam integer HOLD_SAMPLES = SAMPLE_HZ / 100;   // 10ms
 reg [7:0]  hold;
 reg        step_seen;
 reg [14:0] motor_hold;      // ~1s at 16kHz, bridges the gaps between sectors
-reg        motor_seen;      // sticky: sector transfer since the last tick
-reg [7:0]  act_level;       // leaky bucket, see below
-reg [6:0]  act_decay;
-reg        motor_on_d;     // sd_rd is a level, not a pulse
 always @(posedge clk) begin
     if(!resetn) begin
         hold       <= 8'd0;
         step_seen  <= 1'b0;
-        motor_seen <= 1'b0;
-        act_level  <= 8'd0;
-        act_decay  <= 7'd0;
-        motor_on_d <= 1'b0;
         motor_hold <= 15'd0;
     end else begin
         // Both inputs are short pulses in the system clock domain, far shorter
@@ -120,45 +112,15 @@ always @(posedge clk) begin
         // an idle desktop forever. Gating the pulse rather than the envelope
         // keeps the test in the block that already evaluates motor_hold.
         if(step && motor_hold != 0) step_seen <= 1'b1;
-        // Count accesses, not time spent accessing: sd_rd stays asserted until
-        // the card has delivered, so sampling the level would turn one slow
-        // sector read into dozens of counts and swamp any rate measurement.
-        motor_on_d <= motor_on;
-        if(motor_on && !motor_on_d) motor_seen <= 1'b1;
 
         if(tick) begin
             if(step_seen)      hold <= HOLD_SAMPLES[7:0];
             else if(hold != 0) hold <= hold - 8'd1;
             step_seen <= 1'b0;
 
-            // Telling a real access from TOS polling for a disk change is a
-            // matter of rate, not of kind. Once a disk has been read, TOS polls
-            // with both head movement and sector reads, just rarely: one or two
-            // sectors per second against thirty or more while loading. So
-            // accumulate activity in a leaky bucket and run the hum only above
-            // a threshold. This is why a freshly booted desktop is silent while
-            // one reached after loading a disk was not.
-            //
-            // Numbers: +64 per sector, -1 every 16 ticks at 16kHz, so the
-            // balance point sits at about 15 sectors per second. Polling stays
-            // well below it, loading saturates the bucket immediately.
-            if(motor_seen)
-               act_level <= (act_level > 8'd191) ? 8'd255 : act_level + 8'd64;
-            else if(act_decay == 7'd15) begin
-               act_decay <= 7'd0;
-               if(act_level != 0) act_level <= act_level - 8'd1;
-            end else
-               act_decay <= act_decay + 7'd1;
-            motor_seen <= 1'b0;
-
-            // One threshold, and a high one. A load keeps the bucket pinned at
-            // its ceiling, so 200 is never in its way; anything sparser cannot
-            // hold it there. An earlier revision lowered the bar once the hum
-            // was running, to keep it from stuttering between sectors -- but
-            // that is exactly what let stray activity keep it alive forever
-            // after the load had finished. Better a rare gap than a hum that
-            // never stops.
-            if(act_level > 8'd200)   motor_hold <= 15'd8000;    // ~500ms
+            // motor_on arrives already gated (motor AND data density, next to
+            // the FDC in atarist.v); just follow it with a short tail.
+            if(motor_on)             motor_hold <= 15'd8000;
             else if(motor_hold != 0) motor_hold <= motor_hold - 15'd1;
             end
     end
@@ -268,6 +230,13 @@ wire signed [23:0] scaled = (volume == 2'd0) ? 24'sd0 :
                             (volume == 2'd1) ? (sum >>> 2) :
                             (volume == 2'd2) ? (sum >>> 1) : sum;
 
-assign snd = scaled[15:0];
+// Registered output. The value only changes on the 16kHz tick, but without
+// this register the two multipliers, the adder and the volume mux sit on a
+// combinational path that runs straight into the HDMI audio packetizer's
+// clock domain crossing -- the worst timing path of the whole core, at
+// -18ns, and one the placer wastes its highest priority on in every build.
+reg signed [15:0] snd_r;
+always @(posedge clk) if(tick) snd_r <= scaled[15:0];
+assign snd = snd_r;
 
 endmodule

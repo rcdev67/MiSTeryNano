@@ -28,6 +28,7 @@ module fdc1772 (
 	output           floppy_step,
 	input            floppy_motor,
 	output           floppy_motor_on, // spindle running, for drive sound
+	output           floppy_data_cmd, // a read/write command is executing, for drive sound
 
 	output           floppy_ready,
 
@@ -356,6 +357,11 @@ reg [3:0] motor_spin_up_sequence /* verilator public */;
 
 assign fd_motor = EXT_MOTOR ? floppy_motor : motor_on;
 assign floppy_motor_on = fd_motor;
+// Type 2 (read/write sector) and type 3 (read address/track, write track)
+// are the commands that move data. Type 1 seeks and type 4 force interrupts
+// keep the motor alive but move nothing -- which is what GEM does at the
+// desktop, and what a drive sound must not react to.
+assign floppy_data_cmd = busy && (cmd_type_2 || cmd_type_3);
 
 // consider spin up done either if the motor is not supposed to spin at all or
 // if it's supposed to run and has left the spin up sequence
