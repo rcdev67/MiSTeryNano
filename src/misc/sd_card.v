@@ -358,7 +358,11 @@ always @(posedge clk) begin
 
                // this command can optionally send additional (debug) data
                if(byte_cnt == 4'd5) data_out <= { ~rsector[7], 7'd0 };   // indicate that more data is valid
-               if(byte_cnt == 4'd6) data_out <= { 7'b0000000, |wstart};  // optional data to indicate writes
+               // optional data: bit 0 indicates core writes, bit 1 tells the MCU
+               // that its own sector write has not finished yet. The MCU may end
+               // the write command right after the data and poll this instead of
+               // holding the SPI bus while the card is busy.
+               if(byte_cnt == 4'd6) data_out <= { 6'b000000, (mcu_request != MCU_REQ_IDLE), |wstart};
 			end
 
 			// SDC CMD 2: CORE_RW
