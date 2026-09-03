@@ -44,6 +44,9 @@ module uart_ext #(
 reg [16:0] period;      // 300 baud needs 106667 clocks, more than 16 bits
 always @(*) begin
     case(bitrate)
+        24'd115200: period = CLK_HZ / 115200;   // the rates above 19200 are
+        24'd57600: period = CLK_HZ / 57600;     // for the companion's network
+        24'd38400: period = CLK_HZ / 38400;     // port, the MFP cannot set them
         24'd19200: period = CLK_HZ / 19200;
         24'd4800:  period = CLK_HZ / 4800;
         24'd2400:  period = CLK_HZ / 2400;

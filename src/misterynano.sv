@@ -429,14 +429,21 @@ wire [7:0] serial_rx_data;
 // The RS232 port goes either to the companion MCU (through sysctrl) or to
 // the external UART, selected in the OSD. The side not selected sees an
 // empty FIFO, so the companion keeps working unchanged.
+// "Serial:" in the OSD: 0 = Companion, 1 = Ext. UART (the ST talks to the
+// device on the M0S connector), 2 = Netz (the ST talks to the companion as
+// in 0, and the device on the M0S connector becomes the companion's port 1)
 wire [1:0] system_serial;
-wire       serial_ext = system_serial[0];
+wire       serial_ext = (system_serial == 2'd1);
+wire       serial_net = (system_serial == 2'd2);
 wire       mcu_tx_strobe, mcu_rx_strobe, ext_tx_strobe, ext_rx_strobe;
 wire [7:0] mcu_rx_data, ext_rx_data;
 assign serial_tx_strobe = serial_ext ? ext_tx_strobe : mcu_tx_strobe;
 assign serial_rx_strobe = serial_ext ? ext_rx_strobe : mcu_rx_strobe;
 assign serial_rx_data   = serial_ext ? ext_rx_data   : mcu_rx_data;
-assign uart_ext_en = serial_ext;
+
+wire ext_txd, net_txd;
+assign uart_ext_en = serial_ext | serial_net;
+assign uart_ext_tx = serial_ext ? ext_txd : net_txd;
 
 uart_ext uart_ext_inst (
     .clk         ( clk32 ),
@@ -449,7 +456,68 @@ uart_ext uart_ext_inst (
     .rx_space    ( serial_rx_available ),
     .rx_data     ( ext_rx_data ),
     .rx_strobe   ( ext_rx_strobe ),
-    .txd         ( uart_ext_tx ),
+    .txd         ( ext_txd ),
+    .rxd         ( uart_ext_rx )
+);
+
+// The companion's port 1: a second UART on the same pins with two small
+// FIFOs in between, doing for it what the MFP's FIFOs do for port 0.
+// The FIFOs hold 15 bytes each and are cleared whenever the port is off.
+wire        net_fifo_reset = por | !serial_net;
+wire [23:0] net_bitrate;
+
+// companion -> UART
+wire [7:0] net_tx_in, net_tx_out;
+wire       net_tx_push, net_tx_pop;
+wire [3:0] net_tx_space, net_tx_used;
+io_fifo #(.DEPTH(4)) net_tx_fifo (
+    .reset      ( net_fifo_reset ),
+    .in         ( net_tx_in ),
+    .in_clk     ( clk32 ),
+    .in_strobe  ( net_tx_push ),
+    .in_enable  ( 1'b0 ),
+    .out_clk    ( clk32 ),
+    .out        ( net_tx_out ),
+    .out_strobe ( net_tx_pop ),
+    .out_enable ( 1'b0 ),
+    .space      ( net_tx_space ),
+    .empty      ( ),
+    .used       ( net_tx_used ),
+    .full       ( )
+);
+
+// UART -> companion
+wire [7:0] net_rx_in, net_rx_out;
+wire       net_rx_push, net_rx_pop;
+wire [3:0] net_rx_space, net_rx_used;
+io_fifo #(.DEPTH(4)) net_rx_fifo (
+    .reset      ( net_fifo_reset ),
+    .in         ( net_rx_in ),
+    .in_clk     ( clk32 ),
+    .in_strobe  ( net_rx_push ),
+    .in_enable  ( 1'b0 ),
+    .out_clk    ( clk32 ),
+    .out        ( net_rx_out ),
+    .out_strobe ( net_rx_pop ),
+    .out_enable ( 1'b0 ),
+    .space      ( net_rx_space ),
+    .empty      ( ),
+    .used       ( net_rx_used ),
+    .full       ( )
+);
+
+uart_ext uart_net_inst (
+    .clk         ( clk32 ),
+    .resetn      ( !por ),
+    .enable      ( serial_net ),
+    .bitrate     ( net_bitrate ),
+    .tx_available( { 4'd0, net_tx_used } ),
+    .tx_data     ( net_tx_out ),
+    .tx_strobe   ( net_tx_pop ),
+    .rx_space    ( { 4'd0, net_rx_space } ),
+    .rx_data     ( net_rx_in ),
+    .rx_strobe   ( net_rx_push ),
+    .txd         ( net_txd ),
     .rxd         ( uart_ext_rx )
 );
 
@@ -477,7 +545,17 @@ sysctrl sysctrl (
 		// So report space and drop what it writes; the strobe is not forwarded.
 		.port_in_available(serial_ext ? 8'd15 : serial_rx_available),
         .port_in_strobe(mcu_rx_strobe),
-		.port_in_data(mcu_rx_data),	 
+		.port_in_data(mcu_rx_data),
+
+		// port 1, the network UART. Off, it reports data waiting: none,
+		// and space: plenty, so a write is swallowed instead of spinning
+		.net_out_available( { 4'd0, net_rx_used } ),
+		.net_out_strobe(net_rx_pop),
+		.net_out_data(net_rx_out),
+		.net_in_available( serial_net ? { 4'd0, net_tx_space } : 8'd15 ),
+		.net_in_strobe(net_tx_push),
+		.net_in_data(net_tx_in),
+		.net_bitrate(net_bitrate),
 
 		.rtc(rtc),	 
 				 

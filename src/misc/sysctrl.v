@@ -37,6 +37,16 @@ module sysctrl (
   output reg	    port_in_strobe,
   output reg [7:0]  port_in_data,
 
+  // second IO port: the network UART on the M0S connector. Serial type,
+  // always 8N1, bit rate set by the MCU through system value "N"
+  input [7:0]	    net_out_available, // bytes waiting for the MCU
+  output reg	    net_out_strobe,
+  input [7:0]	    net_out_data,
+  input [7:0]	    net_in_available,  // free bytes towards the UART
+  output reg	    net_in_strobe,
+  output reg [7:0]  net_in_data,
+  output [23:0]	    net_bitrate,
+
   output reg [11:0] rtc, // toggle bit, 3 bit index, 8 bit data
 	
   // values that can be configured by the user
@@ -77,8 +87,19 @@ reg	  buttons_irq_enable;
 assign int_out_n = (int_in != 8'h00 || sys_int)?1'b0:1'b1;
    
 reg       port_out_availableD;
-reg [7:0] port_cmd;   
+reg       net_out_availableD;
+reg [7:0] port_cmd;
 reg [7:0] port_index;
+
+// bit rate of the network port, 0 = 19200 (what a fresh ESP-AT or Zimodem
+// C3 talks), 1 = 38400, 2 = 57600, 3 = 115200
+reg [1:0] system_net_baud;
+assign net_bitrate = (system_net_baud == 2'd3) ? 24'd115200 :
+                     (system_net_baud == 2'd2) ? 24'd57600 :
+                     (system_net_baud == 2'd1) ? 24'd38400 : 24'd19200;
+// status word of the network port in the MFP's layout: bit rate bytes
+// swapped, then 8 data bits, no parity, 1 stop bit
+wire [31:0] net_status = { net_bitrate[7:0], net_bitrate[15:8], net_bitrate[23:16], 4'd8, 2'd0, 2'd0 };
 
 reg [7:0] rtc_cmd;   
 
@@ -120,6 +141,8 @@ always @(posedge clk) begin
 
       port_out_strobe <= 1'b0;
       port_in_strobe <= 1'b0;
+      net_out_strobe <= 1'b0;
+      net_in_strobe <= 1'b0;
       
       // OSD value defaults. These should be sane defaults, but the MCU
       // will very likely override these early
@@ -135,6 +158,7 @@ always @(posedge clk) begin
       system_port_mouse <= 2'd0;    // mouse on usb -> db9 joystick
       system_port_joy <= 2'd0;
       system_serial <= 2'd0;        // RS232 goes to the companion
+      system_net_baud <= 2'd0;      // network port at 19200
       system_tos_slot <= 1'b0;      // primary tos slot
    end else begin // if (reset)
       //  bring button state into local clock domain
@@ -144,6 +168,8 @@ always @(posedge clk) begin
       int_ack <= 8'h00;
       port_out_strobe <= 1'b0;
       port_in_strobe <= 1'b0;
+      net_out_strobe <= 1'b0;
+      net_in_strobe <= 1'b0;
 
       // iack bit 0 acknowledges the system control interrupt
       if(int_ack[0]) sys_int <= 1'b0;      
@@ -151,6 +177,11 @@ always @(posedge clk) begin
       // (further) data has just become available, so raise interrupt
       port_out_availableD <= (port_out_available != 8'd0);
       if(port_out_available && !port_out_availableD)
+	sys_int <= 1'b1;
+
+      // same for the network port, reported as its own interrupt source
+      net_out_availableD <= (net_out_available != 8'd0);
+      if(net_out_available && !net_out_availableD)
 	sys_int <= 1'b1;
       
       // monitor buttons for changes and raise interrupt
@@ -230,6 +261,7 @@ always @(posedge clk) begin
                     // Value "U": Joysticks USB only(0), 1 x Atari(1), 2 x Atari(2) 
                     if(id == "U") system_port_joy <= data_in[1:0];
                     if(id == "E") system_serial <= data_in[1:0];
+                    if(id == "N") system_net_baud <= data_in[1:0];
                     // Value "T": Primary(0) TOS slot or Secondary(1)
                     if(id == "T") system_tos_slot <= data_in[0];
                 end
@@ -250,7 +282,8 @@ always @(posedge clk) begin
 	        // bit[0]: coldboot flag
 	        // bit[1]: port data is available
 	        // bit[2]: buttons state change has been detected
-                data_out <= { 5'b00000, !buttons_irq_enable, (port_out_available != 8'd0), coldboot };
+	        // bit[3]: network port data is available
+                data_out <= { 4'b0000, (net_out_available != 8'd0), !buttons_irq_enable, (port_out_available != 8'd0), coldboot };
 	        // reading the interrupt source acknowledges the coldboot notification
 	        if(state == 4'd0) coldboot <= 1'b0;            
 	    end
@@ -262,13 +295,34 @@ always @(posedge clk) begin
                if(state == 4'd0) begin
 		  // first byte is the subcommand
 		  port_cmd <= data_in;
-		  // return the number of ports implemented in this core
-		  data_out <= 8'd1;
+		  // return the number of ports implemented in this core:
+		  // 0 = the ST's RS232, 1 = the network UART
+		  data_out <= 8'd2;
 	       end else if(state == 4'd1) begin
 		  // second byte is the port index (if several ports are supported)
 		  port_index <= data_in;
-		  // return port type (currently supports only 0=serial)
-		  data_out <= 8'd0;
+		  // return port type, both are 0=serial; anything else is no port
+		  data_out <= (data_in < 8'd2) ? 8'd0 : 8'hff;
+	       end else if(port_index == 8'd1) begin
+		  // ... the network port mirrors port 0, with its own FIFOs
+
+		  if(port_cmd == 8'd0) begin
+		     if(state == 4'd2)       data_out <= net_out_available;
+		     else if(state == 4'd3)  data_out <= net_in_available;
+		     else if(state == 4'd4)  data_out <= net_status[31:24];
+		     else if(state == 4'd5)  data_out <= net_status[23:16];
+		     else if(state == 4'd6)  data_out <= net_status[15:8];
+		     else if(state == 4'd7)  data_out <= net_status[7:0];
+		     else                    data_out <= 8'h00;
+		  end
+		  else if(port_cmd == 8'd1) begin
+		     data_out <= net_out_data;
+		     net_out_strobe <= data_in[0];
+		  end
+		  else if(port_cmd == 8'd2) begin
+		     net_in_data <= data_in;
+		     net_in_strobe <= 1'b1;
+		  end
 	       end else begin
 		  // ... further bytes are subcommand specific
 
