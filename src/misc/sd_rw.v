@@ -120,7 +120,10 @@ reg [3:0] wack;
    
    
 assign     rbusy  = (sdcmd_stat != READY) ;
-assign     rdone  = ((sdcmd_stat == READING) || (sdcmd_stat == WRITING)) && (sddat_stat==DONE);
+// A failed write ends the transfer as well: without a done pulse the
+// request logic in sd_card.v would wait for it forever and every later
+// card access would hang with it
+assign     rdone  = ((sdcmd_stat == READING) || (sdcmd_stat == WRITING)) && (sddat_stat==DONE || sddat_stat==WERR);
 
 assign card_stat = sdcmd_stat;
 
@@ -386,11 +389,14 @@ always @ (posedge clk or negedge rstn)
 	        WWAIT : if(ena_p) begin
 		   // TODO: This is the place to check wack
 		   
-		   // wait for not being busy anymore
+		   // wait for not being busy anymore. A card may stay busy for
+		   // well over a second while it reorganises itself after a
+		   // run of single sector writes, so give it a few seconds
+		   // rather than the ~100ms the old limit of 1000000 allowed
 		   if(sddatin[0] == 1) begin
 		      sddat_stat <= RTAIL;
-                      ridx   <= 0; 
-		   end else if(ridx > 1000000) begin
+                      ridx   <= 0;
+		   end else if(ridx > 64000000) begin
 		      sddat_stat <= WERR;   // busy timeout
 		      ridx   <= 0; 
 		   end else begin
