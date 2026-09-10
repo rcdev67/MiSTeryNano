@@ -362,7 +362,8 @@ always @(posedge clk) begin
                // that its own sector write has not finished yet. The MCU may end
                // the write command right after the data and poll this instead of
                // holding the SPI bus while the card is busy.
-               if(byte_cnt == 4'd6) data_out <= { 6'b000000, (mcu_request != MCU_REQ_IDLE), |wstart};
+               // bit 2: the sector the MCU asked to read is in the buffer
+               if(byte_cnt == 4'd6) data_out <= { 5'b00000, (mcu_request == MCU_READY2TRANSFER), (mcu_request != MCU_REQ_IDLE), |wstart};
 			end
 
 			// SDC CMD 2: CORE_RW
@@ -391,10 +392,15 @@ always @(posedge clk) begin
                if(byte_cnt == 4'd0) mcu_sector[31:24] <= data_in;
                if(byte_cnt == 4'd1) mcu_sector[23:16] <= data_in;
                if(byte_cnt == 4'd2) mcu_sector[15: 8] <= data_in;
-               if(byte_cnt == 4'd3) begin 
-                  mcu_sector[ 7: 0] <= data_in;				  
-				  $display("sd_card.v: MCU read request sector %0d/%8x", {mcu_sector[31:8], data_in}, {mcu_sector[31:8], data_in});  
-				  mcu_request <= MCU_REQ_READ;	  
+               if(byte_cnt == 4'd3) begin
+                  mcu_sector[ 7: 0] <= data_in;
+				  $display("sd_card.v: MCU read request sector %0d/%8x", {mcu_sector[31:8], data_in}, {mcu_sector[31:8], data_in});
+				  // A new request only when idle. The MCU may end the command
+				  // right here, poll status byte 6 bit 2 for the data and then
+				  // repeat the command to fetch it, without holding the SPI
+				  // bus while the card is busy.
+				  if(mcu_request == MCU_REQ_IDLE)
+				    mcu_request <= MCU_REQ_READ;
                end
 
 			   // return data once in reading state
