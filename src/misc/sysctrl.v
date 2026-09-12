@@ -84,7 +84,13 @@ reg	  buttons_irq_enable;
    
 // the system cobtrol interrupt or any other interrupt (e,g sdc, hid, ...)
 // activates the interrupt line to the MCU by pulling it low
-assign int_out_n = (int_in != 8'h00 || sys_int)?1'b0:1'b1;
+// The network port raises the interrupt as a level, not an event: its
+// FIFO holds only 15 bytes and fills in about a millisecond at 115200. A
+// rising-edge notification that is acknowledged before the bytes are
+// fetched leaves the FIFO full and silent for good, which is exactly
+// what happened during downloads. The level clears once the MCU drains.
+wire net_pending = (net_out_available != 8'd0);
+assign int_out_n = (int_in != 8'h00 || sys_int || net_pending)?1'b0:1'b1;
    
 reg       port_out_availableD;
 reg       net_out_availableD;
@@ -274,7 +280,7 @@ always @(posedge clk) begin
 
 	        // interrupt[0] notifies the MCU of a FPGA cold boot e.g. if
                 // the FPGA has been loaded via USB
-                data_out <= { int_in[7:1], sys_int };
+                data_out <= { int_in[7:1], sys_int | net_pending };
             end
 	   
             // CMD 6: read system interrupt source
