@@ -86,6 +86,12 @@ reg         fdn_hd[FD_NUM];
 reg         fdn_ed[FD_NUM];
 reg         fdn_fm[FD_NUM];
 reg         fdn_present[FD_NUM];
+// TOS notices a disk change only through the write protect bit: a real
+// drive reports "protected" while no disk is in. Report that for about
+// half a second after an image is mounted, so the desktop re-reads the
+// boot sector instead of keeping the old disk's geometry, which left a
+// double sided image looking empty after a single sided one.
+reg  [23:0] fdn_changed[FD_NUM];
 reg   [1:0] fdn_sector_size_code[FD_NUM]; // sec size 0=128, 1=256, 2=512, 3=1024
 reg         fdn_sector_base[FD_NUM];
 reg   [2:0] fdn_type[FD_NUM];
@@ -197,8 +203,10 @@ always @(posedge clkcpu) begin
 	integer i;
 
 	for(i = 0; i < FD_NUM; i = i+1'd1) begin
+		if (fdn_changed[i] != 24'd0) fdn_changed[i] <= fdn_changed[i] - 24'd1;
 		if (img_mounted[i]) begin
 			fdn_present[i] <= |img_size;
+			fdn_changed[i] <= 24'hffffff;   // 16.7M cycles of clkcpu
 			fdn_sector_size_code[i] <= image_sector_size_code;
 			fdn_spt[i] <= image_spt;
 			fdn_gap_len[i] <= image_gap_len;
@@ -273,7 +281,7 @@ wire        fd_sector_hdr  = fd_any ? fdn_sector_hdr[fdn]  : 1'b0;
 wire        fd_sector_data = fd_any ? fdn_sector_data[fdn] : 1'b0;
 wire        fd_dclk_en     = fd_any ? fdn_dclk[fdn]        : 1'b0;
 wire        fd_present     = fd_any ? fdn_present[fdn]     : 1'b0;
-wire        fd_writeprot   = fd_any ? img_wp[fdn]          : 1'b1;
+wire        fd_writeprot   = fd_any ? (img_wp[fdn] || (fdn_changed[fdn] != 24'd0)) : 1'b1;
 
 wire        fd_doubleside  = fdn_doubleside[fdn];
 wire  [5:0] fd_spt         = fdn_spt[fdn];
