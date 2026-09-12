@@ -10,6 +10,37 @@ MiSTeryNano implements the hardware of an [Atari ST](https://de.wikipedia.org/wi
 run the original operating systems as well as the majority of games and
 productivity software of the [Atari ST](https://de.wikipedia.org/wiki/Atari_ST).
 
+## This fork (branch `nano20k-running`, Tang Nano 20K)
+
+This fork is what runs on my Tang Nano 20K with the onboard BL616 and the
+[FPGA-Companion fork](https://github.com/rcdev67/FPGA-Companion) (branch
+`net-download`). The two belong together. What it adds to upstream:
+
+- **Floppy drive sounds**: spindle and head movement from real samples,
+  gated on actual disk activity, volume in the OSD.
+- **Timing constraints** for the flash, SDRAM and MCU SPI interfaces, and
+  a flash path sampled on the falling edge; build scripts `build_p2r1.tcl`
+  and friends with the placement and routing options the tested bitstreams
+  were made with.
+- **External serial port on the M0S connector** (pins 41/51), selectable in
+  the OSD as `Serial: Ext. UART`: the ST talks to a real modem there, for
+  example an ESP32 running
+  [Zimodem](https://github.com/rcdev67/Zimodem/releases).
+- **A second port for the companion on the same pins** (`Serial: Netz`):
+  the companion uses the modem itself to load files from a PC onto the SD
+  card, chosen in the OSD. 255-byte FIFOs, up to 460800 baud, the data
+  interrupt is a level so nothing can get stuck in the FIFO.
+- **SD card**: the companion can read and write sectors without holding the
+  SPI bus, a busy card after a write is waited for (up to four seconds),
+  a write error ends the command instead of hanging the controller.
+- **Disk change**: the floppy controller reports write protect for half a
+  second after an image is mounted, so TOS notices the change and re-reads
+  the boot sector; before, a double sided image inserted after a single
+  sided one showed an empty directory until a reset.
+
+Everything upstream still works as before; the additions are off until
+selected in the OSD. Details are in the commit messages.
+
 A complete MiSTeryNano setup also requires a supporting MCU acting as
 the [FPGA Companion](https://github.com/MiSTle-Dev/FPGA-Companion/).
 
