@@ -99,10 +99,11 @@ reg [7:0] port_index;
 
 // bit rate of the network port, 0 = 19200 (what a fresh ESP-AT or Zimodem
 // C3 talks), 1 = 38400, 2 = 57600, 3 = 115200
-reg [1:0] system_net_baud;
-assign net_bitrate = (system_net_baud == 2'd3) ? 24'd115200 :
-                     (system_net_baud == 2'd2) ? 24'd57600 :
-                     (system_net_baud == 2'd1) ? 24'd38400 : 24'd19200;
+reg [2:0] system_net_baud;
+assign net_bitrate = (system_net_baud == 3'd4) ? 24'd460800 :
+                     (system_net_baud == 3'd3) ? 24'd115200 :
+                     (system_net_baud == 3'd2) ? 24'd57600 :
+                     (system_net_baud == 3'd1) ? 24'd38400 : 24'd19200;
 // status word of the network port in the MFP's layout: bit rate bytes
 // swapped, then 8 data bits, no parity, 1 stop bit
 wire [31:0] net_status = { net_bitrate[7:0], net_bitrate[15:8], net_bitrate[23:16], 4'd8, 2'd0, 2'd0 };
@@ -164,7 +165,7 @@ always @(posedge clk) begin
       system_port_mouse <= 2'd0;    // mouse on usb -> db9 joystick
       system_port_joy <= 2'd0;
       system_serial <= 2'd0;        // RS232 goes to the companion
-      system_net_baud <= 2'd0;      // network port at 19200
+      system_net_baud <= 3'd0;      // network port at 19200
       system_tos_slot <= 1'b0;      // primary tos slot
    end else begin // if (reset)
       //  bring button state into local clock domain
@@ -267,7 +268,7 @@ always @(posedge clk) begin
                     // Value "U": Joysticks USB only(0), 1 x Atari(1), 2 x Atari(2) 
                     if(id == "U") system_port_joy <= data_in[1:0];
                     if(id == "E") system_serial <= data_in[1:0];
-                    if(id == "N") system_net_baud <= data_in[1:0];
+                    if(id == "N") system_net_baud <= data_in[2:0];
                     // Value "T": Primary(0) TOS slot or Secondary(1)
                     if(id == "T") system_tos_slot <= data_in[0];
                 end

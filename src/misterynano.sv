@@ -469,8 +469,8 @@ wire [23:0] net_bitrate;
 // companion -> UART
 wire [7:0] net_tx_in, net_tx_out;
 wire       net_tx_push, net_tx_pop;
-wire [3:0] net_tx_space, net_tx_used;
-io_fifo #(.DEPTH(4)) net_tx_fifo (
+wire [7:0] net_tx_space, net_tx_used;
+io_fifo #(.DEPTH(8)) net_tx_fifo (
     .reset      ( net_fifo_reset ),
     .in         ( net_tx_in ),
     .in_clk     ( clk32 ),
@@ -489,8 +489,8 @@ io_fifo #(.DEPTH(4)) net_tx_fifo (
 // UART -> companion
 wire [7:0] net_rx_in, net_rx_out;
 wire       net_rx_push, net_rx_pop;
-wire [3:0] net_rx_space, net_rx_used;
-io_fifo #(.DEPTH(4)) net_rx_fifo (
+wire [7:0] net_rx_space, net_rx_used;
+io_fifo #(.DEPTH(8)) net_rx_fifo (
     .reset      ( net_fifo_reset ),
     .in         ( net_rx_in ),
     .in_clk     ( clk32 ),
@@ -511,10 +511,10 @@ uart_ext uart_net_inst (
     .resetn      ( !por ),
     .enable      ( serial_net ),
     .bitrate     ( net_bitrate ),
-    .tx_available( { 4'd0, net_tx_used } ),
+    .tx_available( net_tx_used ),
     .tx_data     ( net_tx_out ),
     .tx_strobe   ( net_tx_pop ),
-    .rx_space    ( { 4'd0, net_rx_space } ),
+    .rx_space    ( net_rx_space ),
     .rx_data     ( net_rx_in ),
     .rx_strobe   ( net_rx_push ),
     .txd         ( net_txd ),
@@ -549,10 +549,10 @@ sysctrl sysctrl (
 
 		// port 1, the network UART. Off, it reports data waiting: none,
 		// and space: plenty, so a write is swallowed instead of spinning
-		.net_out_available( { 4'd0, net_rx_used } ),
+		.net_out_available( net_rx_used ),
 		.net_out_strobe(net_rx_pop),
 		.net_out_data(net_rx_out),
-		.net_in_available( serial_net ? { 4'd0, net_tx_space } : 8'd15 ),
+		.net_in_available( serial_net ? net_tx_space : 8'd255 ),
 		.net_in_strobe(net_tx_push),
 		.net_in_data(net_tx_in),
 		.net_bitrate(net_bitrate),
