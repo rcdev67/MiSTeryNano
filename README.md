@@ -37,6 +37,9 @@ This fork is what runs on my Tang Nano 20K with the onboard BL616 and the
   second after an image is mounted, so TOS notices the change and re-reads
   the boot sector; before, a double sided image inserted after a single
   sided one showed an empty directory until a reset.
+- **A joystick over a serial line** on pin 54: a Bluetooth controller
+  paired to the Zimodem ESP32 (Bluepad32 build) arrives as one byte per
+  change and drives joystick port 1, whatever the Serial setting.
 
 Everything upstream still works as before; the additions are off until
 selected in the OSD. Details are in the commit messages.
