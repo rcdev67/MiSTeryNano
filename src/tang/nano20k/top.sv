@@ -189,6 +189,7 @@ misterynano misterynano (
   .uart_ext_en ( uart_ext_en ),
   .uart_ext_tx ( uart_ext_tx ),
   .uart_ext_rx ( m0s[1] ),
+  .joy_uart_rx ( m0s[3] ),      // pin 54: bytes from a Bluetooth controller receiver
 
   // mcu interface
   .mcu_sclk ( spi_io_clk  ),

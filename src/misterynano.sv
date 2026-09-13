@@ -59,6 +59,7 @@ module misterynano #(
   output        uart_ext_en,
   output        uart_ext_tx,
   input         uart_ext_rx = 1'b1,
+  input         joy_uart_rx = 1'b1,  // a Bluetooth controller via a receiver on the M0S connector
 
   // the parallel port of the ST only carries few signals
   output		parallel_strobe_oe,
@@ -345,10 +346,19 @@ wire [5:0] db9_port0 = port0_mouse_active?port0_mouse:port0_joystick;
 // Port 1 is the default joystick port on an Atari ST. The first USB joystick will map
 // here Unless at least one DB9 joystick is being used. If a DB9 mouse is connected, then
 // a joystick from the second DB9 port is being used.
-wire [5:0] db9_port1 = 
+// a wireless controller arrives as bytes on the M0S connector, see joy_uart.v
+wire [7:0] joy_uart;
+joy_uart joy_uart_inst (
+    .clk    ( clk32       ),
+    .resetn ( !por        ),
+    .rxd    ( joy_uart_rx ),
+    .joy    ( joy_uart    )
+);
+
+wire [5:0] db9_port1 = joy_uart[5:0] | (
 		   (system_port_joy == 2'd0)?hid_joy[0]: // No DB9 joysticks at all
 		   (system_port_mouse != 2'd0)?db9_1:    // DB9 joystick and DB9 mouse connected as well
-		   db9_0_atari;                          // only Atari joystick(s) on DB9   
+		   db9_0_atari);                         // only Atari joystick(s) on DB9   
 
 // Port 2 is mapped to the printer port like the "Gaunlet 2 adapter" would. It's used once
 // there are at least three joysticks in the system, either a third USB joystick, or one DB9
