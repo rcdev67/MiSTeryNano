@@ -142,6 +142,7 @@ Put `.ST` images on the card with a PC, or let the ST fetch them:
 
        wifi=MyNetwork,MyPassword
        server=192.168.1.20:8888
+       timezone=CEST
 
 2. On the PC, in the folder with your images:
 
@@ -154,7 +155,29 @@ Put `.ST` images on the card with a PC, or let the ST fetch them:
 The details, other modem boards and how it works are in
 [DOWNLOAD.md](https://github.com/rcdev67/FPGA-Companion/blob/net-download/DOWNLOAD.md).
 
-## 7. Controllers
+## 7. The clock, and what an accessory is
+
+With a modem attached the ST gets the right date and time by itself: once
+the modem is online the companion takes the time from it and sets the ST's
+clock. The `timezone` line in `atarist.ini` says which zone (a code such as
+`CET`, `CEST`, `GMT`; without it you get UTC). The modem knows no daylight
+saving rules, so in Germany write `CET` in winter and `CEST` in summer.
+TOS reads the clock only when it starts, so after switching on wait until
+the address shows in the OSD title, then use `Reset`.
+
+The easiest place to see the clock is the **control panel**, and that is
+an *accessory*: a small helper program with the ending `.ACC` that TOS
+loads at start from the root of the disk in drive A, up to six of them.
+They then sit in the leftmost menu of the desktop (`Desk`) and can be
+opened at any time, even while another program runs. The control panel
+(`CONTROL.ACC`) came on Atari's own system disk, together with a terminal
+emulator accessory, ST BASIC and more. Put that disk into drive A, reset,
+and `Desk` offers the control panel with date, time, key repeat, mouse
+speed and colours. Accessories are loaded only at start and only from
+drive A, so a game disk in the drive means no accessories, which is what
+you want for games.
+
+## 8. Controllers
 
 USB joysticks and gamepads go on the hub. A Bluetooth Low Energy
 controller (tested: Xbox Series) pairs with the ESP32-S3 and arrives as
@@ -164,7 +187,7 @@ PlayStation and Switch controllers use classic Bluetooth, which the S3
 does not have. More in the Zimodem fork's
 [MISTERYNANO.md](https://github.com/rcdev67/Zimodem/blob/c3-supermini-misterynano/MISTERYNANO.md).
 
-## 8. When something does not work
+## 9. When something does not work
 
 | What you see | What it was for me |
 |---|---|
