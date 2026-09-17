@@ -12,6 +12,8 @@ productivity software of the [Atari ST](https://de.wikipedia.org/wiki/Atari_ST).
 
 ## This fork (branch `nano20k-running`, Tang Nano 20K)
 
+**New here? Start with [GUIDE.md](GUIDE.md):** what you need, setting it up, the power rules, every menu entry explained, which settings for what, and what to check when something does not work.
+
 This fork is what runs on my Tang Nano 20K with the onboard BL616 and the
 [FPGA-Companion fork](https://github.com/rcdev67/FPGA-Companion) (branch
 `net-download`). The two belong together. What it adds to upstream:
