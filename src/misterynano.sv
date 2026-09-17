@@ -176,6 +176,20 @@ flash flash (
     .mspi_hold(mspi_hold)
 );
 
+// The 68000 fetches its initial stack pointer from the first four ROM bytes
+// at every reset, and bytes 2 and 3 of a TOS image are its version number
+// (0x0104, 0x0162, 0x0206 ...). That word is latched as it goes by, so the
+// companion can show in the OSD which TOS the selected slot really holds.
+reg [15:0] tos_version;
+reg        tos_busyD, tos_hit;
+always @(posedge flash_clk) begin
+    tos_busyD <= flash_busy;
+    if(flash_busy && !tos_busyD)
+        tos_hit <= !rom_n && (rom_addr[17:1] == 17'd1);
+    if(!flash_busy && tos_busyD && tos_hit)
+        tos_version <= rom_dout;
+end
+
 /* -------------------- RAM -------------------- */
 
 wire ras_n, cash_n, casl_n;
@@ -566,6 +580,7 @@ sysctrl sysctrl (
 		.net_in_strobe(net_tx_push),
 		.net_in_data(net_tx_in),
 		.net_bitrate(net_bitrate),
+		.tos_version(tos_version),
 
 		.rtc(rtc),	 
 				 

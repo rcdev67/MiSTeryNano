@@ -46,6 +46,7 @@ module sysctrl (
   output reg	    net_in_strobe,
   output reg [7:0]  net_in_data,
   output [23:0]	    net_bitrate,
+  input [15:0]	    tos_version,       // version word of the running TOS, for the OSD
 
   output reg [11:0] rtc, // toggle bit, 3 bit index, 8 bit data
 	
@@ -372,6 +373,14 @@ always @(posedge clk) begin
 	       data_out <= menu_rom_data;
 	       menu_rom_addr <= menu_rom_addr + 12'd1;
 	    end
+
+            // CMD 32: core information for the OSD. For now the version word
+            // of the TOS that is running, 0x0104 for TOS 1.04 and so on.
+            if(command == 8'd32) begin
+               if(state == 4'd0)      data_out <= tos_version[15:8];
+               else if(state == 4'd1) data_out <= tos_version[7:0];
+               else                   data_out <= 8'h00;
+            end
 
             // CMD 9: jtagsel
             if(command == 8'd9) begin
