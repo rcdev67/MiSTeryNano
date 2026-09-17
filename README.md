@@ -44,6 +44,13 @@ This fork is what runs on my Tang Nano 20K with the onboard BL616 and the
 Everything upstream still works as before; the additions are off until
 selected in the OSD. Details are in the commit messages.
 
+The board comes in two versions, 3921 and 3923; the core is the same for
+both, the companion image is not, see
+[TANG_NANO_20K.md](https://github.com/rcdev67/FPGA-Companion/blob/net-download/TANG_NANO_20K.md)
+in the companion fork. A printable pin label sheet for the two headers,
+with strips true to the 2.54 mm pitch, is in [doc](doc):
+[English](doc/tang_nano_20k_pins.svg), [Deutsch](doc/tang_nano_20k_pins_de.svg).
+
 A complete MiSTeryNano setup also requires a supporting MCU acting as
 the [FPGA Companion](https://github.com/MiSTle-Dev/FPGA-Companion/).
 
