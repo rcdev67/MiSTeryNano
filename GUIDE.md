@@ -162,8 +162,11 @@ the modem is online the companion takes the time from it and sets the ST's
 clock. The `timezone` line in `atarist.ini` says which zone (a code such as
 `CET`, `CEST`, `GMT`; without it you get UTC). The modem knows no daylight
 saving rules, so in Germany write `CET` in winter and `CEST` in summer.
-TOS reads the clock only when it starts, so after switching on wait until
-the address shows in the OSD title, then use `Reset`.
+TOS reads the clock only when it starts, so after switching on wait a good
+minute (the address in the OSD title, then another twenty seconds), then
+use `Reset`. What I found so far: TOS 2.06 takes the time over; TOS 1.04
+does not look at this clock and starts with its own date. That is still
+open.
 
 The easiest place to see the clock is the **control panel**, and that is
 an *accessory*: a small helper program with the ending `.ACC` that TOS
@@ -182,7 +185,10 @@ you want for games.
 USB joysticks and gamepads go on the hub. A Bluetooth Low Energy
 controller (tested: Xbox Series) pairs with the ESP32-S3 and arrives as
 joystick port 1: hold the controller's pair button until its light blinks
-fast, wait until it stays lit. From then on it reconnects by itself.
+fast, wait until it stays lit. From then on it reconnects by itself. The
+companion's own menu (Shift+F12) has an entry `Controller...` that shows
+which controller is connected and can start pairing a new one. The bond
+lives in the ESP32, so the controller follows that board, not the Tang.
 PlayStation and Switch controllers use classic Bluetooth, which the S3
 does not have. More in the Zimodem fork's
 [MISTERYNANO.md](https://github.com/rcdev67/Zimodem/blob/c3-supermini-misterynano/MISTERYNANO.md).
