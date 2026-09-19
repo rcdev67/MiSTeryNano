@@ -152,6 +152,19 @@ Put `.ST` images on the card with a PC, or let the ST fetch them:
    on the card; then choose it under `Disk A:`. A 720 KB image takes about
    half a minute.
 
+Names ending in a slash are folders: pick one to see what is in it, `..`
+goes back up. A folder in the `server=` line works too, so
+`server=192.168.1.20:8888/atari/games` starts the list there.
+
+**A whole collection.** For more than a handful of images there is
+[stserve](https://github.com/rcdev67/FPGA-Companion/tree/net-download/tools/stserve)
+in the companion fork: a small server for a NAS or the PC. It opens ZIP
+archives while the file is fetched, so a TOSEC set can stay exactly as it
+is; it shortens `Arkanoid (1987)(Taito)(M4).zip` to `Arkanoid.ST`; and it
+files long folders by letter, so a game is three or four turns of the
+knob away instead of a list nothing can show. It needs nothing but
+Python, and runs as a container on a Synology.
+
 The details, other modem boards and how it works are in
 [DOWNLOAD.md](https://github.com/rcdev67/FPGA-Companion/blob/net-download/DOWNLOAD.md).
 
