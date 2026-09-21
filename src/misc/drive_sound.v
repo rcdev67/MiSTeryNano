@@ -120,7 +120,7 @@ always @(posedge clk) begin
 
             // motor_on arrives already gated (motor AND data density, next to
             // the FDC in atarist.v); just follow it with a short tail.
-            if(motor_on)             motor_hold <= 15'd8000;
+            if(motor_on)             motor_hold <= 15'd2400;   // 150ms tail, was 8000 = half a second
             else if(motor_hold != 0) motor_hold <= motor_hold - 15'd1;
             end
     end

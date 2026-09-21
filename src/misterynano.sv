@@ -858,7 +858,11 @@ video video (
 
 // -------------------------- SD card -------------------------------
 
-assign leds[5:4] = system_leds[1:0];
+// The top LED follows the drive sound, which is the one thing about this
+// core that cannot be seen otherwise: steady while a disk is being read,
+// dark when it is not. It took the place of the second of the two LEDs the
+// companion drives, which nothing here uses.
+assign leds[5:4] = { snd_motor, system_leds[0] };
 
 // Give MCU some time to open a default disk image before booting the core
 // image_size != 0 means card is initialized. Wait up to 2 seconds for this before
