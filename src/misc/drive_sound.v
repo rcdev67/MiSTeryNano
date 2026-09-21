@@ -120,7 +120,7 @@ always @(posedge clk) begin
 
             // motor_on arrives already gated (motor AND data density, next to
             // the FDC in atarist.v); just follow it with a short tail.
-            if(motor_on)             motor_hold <= 15'd2400;   // 150ms tail, was 8000 = half a second
+            if(motor_on)             motor_hold <= 15'd2400;   // 150ms, enough to bridge the gaps of a load
             else if(motor_hold != 0) motor_hold <= motor_hold - 15'd1;
             end
     end
@@ -154,7 +154,16 @@ always @(posedge clk) begin
             if(seek_env < 8'd247) seek_env <= seek_env + 8'd8;
             else                  seek_env <= 8'd255;
         end else if(seek_env != 8'd0)
-            seek_env <= seek_env - 8'd2;
+            // Down by two, with the lowest bit held at zero. Plain "minus
+            // two" steps over the zero whenever the level is odd, which it
+            // is as soon as it has saturated at 255: one minus two is 255
+            // again in eight bits, and the envelope then sweeps from 255 to
+            // 1 for ever, about 125 times a second. That rings whatever
+            // sample the head last left behind, and it was the hum that no
+            // reset ended and only unplugging the board cured. Taking one
+            // off the upper seven bits is the same step, and one bit less
+            // arithmetic than before.
+            seek_env <= { seek_env[7:1] - 7'd1, 1'b0 };
     end
 end
 
