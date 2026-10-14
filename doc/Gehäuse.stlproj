@@ -1,0 +1,451 @@
+{
+  "Version": "4",
+  "ProjectName": "Geh\u00E4use",
+  "SourceStlPath": "",
+  "Printer": {
+    "Name": "Custom",
+    "BedX": 250,
+    "BedY": 210,
+    "BedZ": 210,
+    "Margin": 5
+  },
+  "BodyScalePercent": 100,
+  "Parts": [
+    {
+      "Id": "P05",
+      "Name": "Geh\u00E4use-Unterteil",
+      "Source": "Original",
+      "ParentId": null,
+      "MeshPath": "Geh\u00E4use_parts\\P05_Geh\u00E4use-Unterteil.3mf",
+      "Order": 0,
+      "ColorR": 60,
+      "ColorG": 120,
+      "ColorB": 255,
+      "IsVisible": true,
+      "ExplodeMultiplier": 1,
+      "IsRepaired": true,
+      "HasBakedEmboss": false,
+      "HasPendingEmboss": true,
+      "HasPendingConnectors": false,
+      "EmbossCustomText": null,
+      "Connectors": null,
+      "CutPlanes": null,
+      "EmbossSurface": {
+        "HitPoint": {
+          "X": -55.93406916819236,
+          "Y": 5.40385436974333,
+          "Z": 1.872169999999926
+        },
+        "Normal": {
+          "X": 0,
+          "Y": 0,
+          "Z": 1
+        },
+        "UpHint": {
+          "X": 0.08715574274764216,
+          "Y": 0.9961946980917468,
+          "Z": 0
+        },
+        "LockedTextH": 7.489333229064941
+      }
+    },
+    {
+      "Id": "P06",
+      "Name": "Geh\u00E4use-Deckel",
+      "Source": "Original",
+      "ParentId": null,
+      "MeshPath": "Geh\u00E4use_parts\\P06_Geh\u00E4use-Deckel.3mf",
+      "Order": 0,
+      "ColorR": 60,
+      "ColorG": 120,
+      "ColorB": 255,
+      "IsVisible": true,
+      "ExplodeMultiplier": 1,
+      "IsRepaired": true,
+      "HasBakedEmboss": false,
+      "HasPendingEmboss": false,
+      "HasPendingConnectors": false,
+      "EmbossCustomText": null,
+      "Connectors": null,
+      "CutPlanes": null,
+      "EmbossSurface": null
+    }
+  ],
+  "MaterialPalette": [
+    {
+      "Name": "Gel\u00E4nde/Boden",
+      "R": 191,
+      "G": 178,
+      "B": 154
+    },
+    {
+      "Name": "Geb\u00E4ude",
+      "R": 230,
+      "G": 224,
+      "B": 216
+    },
+    {
+      "Name": "Stra\u00DFen",
+      "R": 85,
+      "G": 91,
+      "B": 102
+    },
+    {
+      "Name": "Wasser",
+      "R": 79,
+      "G": 134,
+      "B": 198
+    },
+    {
+      "Name": "Gr\u00FCnfl\u00E4chen",
+      "R": 107,
+      "G": 168,
+      "B": 95
+    },
+    {
+      "Name": "Wege",
+      "R": 201,
+      "G": 179,
+      "B": 126
+    },
+    {
+      "Name": "Schienen",
+      "R": 123,
+      "G": 113,
+      "B": 102
+    },
+    {
+      "Name": "Material 8",
+      "R": 128,
+      "G": 100,
+      "B": 162
+    }
+  ],
+  "ShowMaterialColors": false,
+  "CutAxis": "Z",
+  "CutProfile": "Flat",
+  "FingerJointCount": 2,
+  "FingerJointDepth": 3,
+  "RegistrationSize": 6,
+  "JointTolerance": 0.05,
+  "ShouldCap": true,
+  "CapOnlyOuterShell": false,
+  "AutoCutCapMode": "Adaptive",
+  "SelectedExportFormatIndex": 1,
+  "ViewModeExploded": false,
+  "ExplodeGap": 8,
+  "ExplodeUseDepth": false,
+  "EmbossLabelsInMesh": true,
+  "EmbossDepthMm": 0.5,
+  "EmbossTextScale": 3,
+  "EmbossFontFamily": "Alfphabet IV",
+  "EmbossCustomFontPath": null,
+  "EmbossSourceType": "Image",
+  "EmbossQrContent": null,
+  "EmbossQrPngPath": null,
+  "EmbossSnapMode": "Horizontal",
+  "EmbossImagePath": "D:\\Development\\Projekte\\MiSTeryNano\\doc\\AtariLogo.png",
+  "EmbossImageThreshold": 128,
+  "EmbossImageInvert": false,
+  "EmbossRaisedByNodeId": {
+    "P06": true
+  },
+  "GridModeIndex": 20,
+  "SelectedPrinterId": "PRUSA_MK3",
+  "CustomBedX": 250,
+  "CustomBedY": 210,
+  "CustomBedZ": 210,
+  "BedEditAdjustments": null,
+  "AutoCutLayout": null,
+  "CreatedAtUtc": "2026-09-18T20:33:32.8499501Z",
+  "LastModifiedUtc": "2026-09-18T20:42:08.9843297Z",
+  "StlMaidVersion": "1.51.0.0",
+  "LastSlicerExePath": "C:\\Program Files\\Prusa3D\\PrusaSlicer\\prusa-slicer.exe",
+  "SaveCount": 3,
+  "SessionState": {
+    "SelectedPartId": "P05",
+    "CurrentMode": "View",
+    "AutoCutBedLayoutView": false,
+    "IsBedEditModeActive": false,
+    "BedEditPartId": null,
+    "ShowCutPlanePreview": false,
+    "ShowRotationHandles": false,
+    "CutPercent": 54.98812351543943,
+    "CutOffsetMm": 15.396674584323042,
+    "CutAngleDeg": 0,
+    "RotationAngle1Deg": 0,
+    "RotationAngle2Deg": 0,
+    "CutPlaneSize": 223.4,
+    "CutPlaneSizeU": 223.4,
+    "CutPlaneSizeV": 223.4,
+    "SelectedRotateAxis": "Z",
+    "ActiveRotationHandle": 0,
+    "ShowGrid": true,
+    "ShowAxes": true,
+    "ShowBodyLabels": false,
+    "ShowAutoCutOptions": false,
+    "AutoRepairAfterCut": false,
+    "UseSelectiveCapping": false,
+    "MaxCapAreaPercent": 20,
+    "SupportRemovalMinTriangles": 8,
+    "SupportRemovalRelativePercent": 1
+  },
+  "UndoHistory": [
+    {
+      "Label": "Geh\u00E4use erstellen",
+      "TimestampUtc": "2026-09-18T17:50:26.7674049Z",
+      "BodyScalePercent": 100,
+      "BodyScaleAppliedPercent": 100,
+      "Roots": [],
+      "Adjustments": []
+    },
+    {
+      "Label": "Teil l\u00F6schen",
+      "TimestampUtc": "2026-09-18T17:51:47.5457012Z",
+      "BodyScalePercent": 100,
+      "BodyScaleAppliedPercent": 100,
+      "Roots": [
+        {
+          "Id": "P01",
+          "Name": "Geh\u00E4use-Unterteil",
+          "MeshHash": "8604dc50ad522d92b5b89dba56ce25d6e237e213eea1252eae35cda7607be7b1",
+          "ColorR": 220,
+          "ColorG": 60,
+          "ColorB": 60,
+          "IsVisible": true,
+          "IsExpanded": true,
+          "ExplodeMultiplier": 1,
+          "IsRepaired": false,
+          "Connectors": null,
+          "Children": []
+        },
+        {
+          "Id": "P02",
+          "Name": "Geh\u00E4use-Deckel",
+          "MeshHash": "27dae64f89127c72879a5d40f2b0cc38975448b6d959c33a688fe072e8c6c064",
+          "ColorR": 220,
+          "ColorG": 60,
+          "ColorB": 60,
+          "IsVisible": true,
+          "IsExpanded": true,
+          "ExplodeMultiplier": 1,
+          "IsRepaired": false,
+          "Connectors": null,
+          "Children": []
+        }
+      ],
+      "Adjustments": []
+    },
+    {
+      "Label": "Teil l\u00F6schen",
+      "TimestampUtc": "2026-09-18T17:51:49.0756201Z",
+      "BodyScalePercent": 100,
+      "BodyScaleAppliedPercent": 100,
+      "Roots": [
+        {
+          "Id": "P01",
+          "Name": "Geh\u00E4use-Unterteil_01",
+          "MeshHash": "8604dc50ad522d92b5b89dba56ce25d6e237e213eea1252eae35cda7607be7b1",
+          "ColorR": 220,
+          "ColorG": 60,
+          "ColorB": 60,
+          "IsVisible": true,
+          "IsExpanded": true,
+          "ExplodeMultiplier": 1,
+          "IsRepaired": false,
+          "Connectors": null,
+          "Children": []
+        }
+      ],
+      "Adjustments": []
+    },
+    {
+      "Label": "Geh\u00E4use erstellen",
+      "TimestampUtc": "2026-09-18T17:53:32.6927479Z",
+      "BodyScalePercent": 100,
+      "BodyScaleAppliedPercent": 100,
+      "Roots": [],
+      "Adjustments": []
+    },
+    {
+      "Label": "Teil l\u00F6schen",
+      "TimestampUtc": "2026-09-18T20:24:25.566329Z",
+      "BodyScalePercent": 100,
+      "BodyScaleAppliedPercent": 100,
+      "Roots": [
+        {
+          "Id": "P03",
+          "Name": "Geh\u00E4use-Unterteil",
+          "MeshHash": "628472bad3ac3d45f923a373f9634d6ca57f6f24521eec487c36ebd5898cf5f3",
+          "ColorR": 60,
+          "ColorG": 200,
+          "ColorB": 60,
+          "IsVisible": true,
+          "IsExpanded": true,
+          "ExplodeMultiplier": 1,
+          "IsRepaired": false,
+          "Connectors": null,
+          "Children": []
+        },
+        {
+          "Id": "P04",
+          "Name": "Geh\u00E4use-Deckel",
+          "MeshHash": "27dae64f89127c72879a5d40f2b0cc38975448b6d959c33a688fe072e8c6c064",
+          "ColorR": 60,
+          "ColorG": 200,
+          "ColorB": 60,
+          "IsVisible": true,
+          "IsExpanded": true,
+          "ExplodeMultiplier": 1,
+          "IsRepaired": false,
+          "Connectors": null,
+          "Children": []
+        }
+      ],
+      "Adjustments": []
+    },
+    {
+      "Label": "Teil l\u00F6schen",
+      "TimestampUtc": "2026-09-18T20:24:27.1707411Z",
+      "BodyScalePercent": 100,
+      "BodyScaleAppliedPercent": 100,
+      "Roots": [
+        {
+          "Id": "P03",
+          "Name": "Geh\u00E4use-Unterteil_01",
+          "MeshHash": "628472bad3ac3d45f923a373f9634d6ca57f6f24521eec487c36ebd5898cf5f3",
+          "ColorR": 60,
+          "ColorG": 200,
+          "ColorB": 60,
+          "IsVisible": true,
+          "IsExpanded": true,
+          "ExplodeMultiplier": 1,
+          "IsRepaired": false,
+          "Connectors": null,
+          "Children": []
+        }
+      ],
+      "Adjustments": []
+    },
+    {
+      "Label": "Geh\u00E4use erstellen",
+      "TimestampUtc": "2026-09-18T20:26:59.7663778Z",
+      "BodyScalePercent": 100,
+      "BodyScaleAppliedPercent": 100,
+      "Roots": [],
+      "Adjustments": []
+    },
+    {
+      "Label": "Beschriftung stanzen",
+      "TimestampUtc": "2026-09-18T20:32:53.944869Z",
+      "BodyScalePercent": 100,
+      "BodyScaleAppliedPercent": 100,
+      "Roots": [
+        {
+          "Id": "P05",
+          "Name": "Geh\u00E4use-Unterteil",
+          "MeshHash": "00f1aa78bc6a69a542c6bf6dbcc69aff64ea37790577034ac9bd882835f32692",
+          "ColorR": 60,
+          "ColorG": 120,
+          "ColorB": 255,
+          "IsVisible": true,
+          "IsExpanded": true,
+          "ExplodeMultiplier": 1,
+          "IsRepaired": false,
+          "Connectors": null,
+          "Children": []
+        },
+        {
+          "Id": "P06",
+          "Name": "Geh\u00E4use-Deckel",
+          "MeshHash": "3afa258912a960ec43f236f3fcd461fb65055653fb7a615ac520b01a58606cde",
+          "ColorR": 60,
+          "ColorG": 120,
+          "ColorB": 255,
+          "IsVisible": true,
+          "IsExpanded": true,
+          "ExplodeMultiplier": 1,
+          "IsRepaired": false,
+          "Connectors": null,
+          "Children": []
+        }
+      ],
+      "Adjustments": []
+    },
+    {
+      "Label": "Beschriftung stanzen",
+      "TimestampUtc": "2026-09-18T20:40:34.317245Z",
+      "BodyScalePercent": 100,
+      "BodyScaleAppliedPercent": 100,
+      "Roots": [
+        {
+          "Id": "P05",
+          "Name": "Geh\u00E4use-Unterteil",
+          "MeshHash": "00f1aa78bc6a69a542c6bf6dbcc69aff64ea37790577034ac9bd882835f32692",
+          "ColorR": 60,
+          "ColorG": 120,
+          "ColorB": 255,
+          "IsVisible": true,
+          "IsExpanded": true,
+          "ExplodeMultiplier": 1,
+          "IsRepaired": false,
+          "Connectors": null,
+          "Children": []
+        },
+        {
+          "Id": "P06",
+          "Name": "Geh\u00E4use-Deckel",
+          "MeshHash": "d77407937dc31487bf1d0c4b59428dffeb6dc4c054f2df4ec4deee562e9f8844",
+          "ColorR": 60,
+          "ColorG": 120,
+          "ColorB": 255,
+          "IsVisible": true,
+          "IsExpanded": true,
+          "ExplodeMultiplier": 1,
+          "IsRepaired": false,
+          "Connectors": null,
+          "Children": []
+        }
+      ],
+      "Adjustments": []
+    },
+    {
+      "Label": "Alle Teile reparieren",
+      "TimestampUtc": "2026-09-18T20:41:10.3698819Z",
+      "BodyScalePercent": 100,
+      "BodyScaleAppliedPercent": 100,
+      "Roots": [
+        {
+          "Id": "P05",
+          "Name": "Geh\u00E4use-Unterteil",
+          "MeshHash": "2d268c96637439a44624683b2c9b168904c2b7672021aec494391d72d3e738ab",
+          "ColorR": 60,
+          "ColorG": 120,
+          "ColorB": 255,
+          "IsVisible": true,
+          "IsExpanded": true,
+          "ExplodeMultiplier": 1,
+          "IsRepaired": false,
+          "Connectors": null,
+          "Children": []
+        },
+        {
+          "Id": "P06",
+          "Name": "Geh\u00E4use-Deckel",
+          "MeshHash": "d77407937dc31487bf1d0c4b59428dffeb6dc4c054f2df4ec4deee562e9f8844",
+          "ColorR": 60,
+          "ColorG": 120,
+          "ColorB": 255,
+          "IsVisible": true,
+          "IsExpanded": true,
+          "ExplodeMultiplier": 1,
+          "IsRepaired": false,
+          "Connectors": null,
+          "Children": []
+        }
+      ],
+      "Adjustments": []
+    }
+  ],
+  "RedoHistory": []
+}
