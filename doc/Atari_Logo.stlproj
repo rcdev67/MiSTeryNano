@@ -1,0 +1,167 @@
+{
+  "Version": "4",
+  "ProjectName": "Silhouette",
+  "SourceStlPath": "",
+  "Printer": {
+    "Name": "Custom",
+    "BedX": 250,
+    "BedY": 220,
+    "BedZ": 270,
+    "Margin": 5
+  },
+  "BodyScalePercent": 100,
+  "Parts": [
+    {
+      "Id": "P01",
+      "Name": "AtariLogo_01",
+      "Source": "Original",
+      "ParentId": null,
+      "MeshPath": "Atari_Logo_parts\\P01_AtariLogo_01.3mf",
+      "StepSourcePath": null,
+      "Order": 0,
+      "ColorR": 60,
+      "ColorG": 200,
+      "ColorB": 60,
+      "IsVisible": true,
+      "ExplodeMultiplier": 1,
+      "IsRepaired": false,
+      "HasBakedEmboss": false,
+      "HasPendingEmboss": false,
+      "HasPendingConnectors": false,
+      "EmbossCustomText": null,
+      "Connectors": null,
+      "CutPlanes": null,
+      "EmbossSurface": null
+    }
+  ],
+  "CadDocumentFile": null,
+  "CadModeActive": false,
+  "MaterialPalette": [
+    {
+      "Name": "Gel\u00E4nde/Boden",
+      "R": 191,
+      "G": 178,
+      "B": 154
+    },
+    {
+      "Name": "Geb\u00E4ude",
+      "R": 230,
+      "G": 224,
+      "B": 216
+    },
+    {
+      "Name": "Stra\u00DFen",
+      "R": 85,
+      "G": 91,
+      "B": 102
+    },
+    {
+      "Name": "Wasser",
+      "R": 79,
+      "G": 134,
+      "B": 198
+    },
+    {
+      "Name": "Gr\u00FCnfl\u00E4chen",
+      "R": 107,
+      "G": 168,
+      "B": 95
+    },
+    {
+      "Name": "Wege",
+      "R": 201,
+      "G": 179,
+      "B": 126
+    },
+    {
+      "Name": "Schienen",
+      "R": 123,
+      "G": 113,
+      "B": 102
+    },
+    {
+      "Name": "Material 8",
+      "R": 128,
+      "G": 100,
+      "B": 162
+    }
+  ],
+  "ShowMaterialColors": false,
+  "CutAxis": "Z",
+  "CutProfile": "Flat",
+  "FingerJointCount": 2,
+  "FingerJointDepth": 3,
+  "RegistrationSize": 6,
+  "JointTolerance": 0.05,
+  "ShouldCap": true,
+  "CapOnlyOuterShell": false,
+  "AutoCutCapMode": "Adaptive",
+  "SelectedExportFormatIndex": 1,
+  "ViewModeExploded": false,
+  "ExplodeGap": 8,
+  "ExplodeUseDepth": false,
+  "EmbossLabelsInMesh": false,
+  "EmbossDepthMm": 0.5,
+  "EmbossTextScale": 3,
+  "EmbossFontFamily": "Alfphabet IV",
+  "EmbossCustomFontPath": null,
+  "EmbossSourceType": "Image",
+  "EmbossQrContent": null,
+  "EmbossQrPngPath": null,
+  "EmbossSnapMode": "None",
+  "EmbossImagePath": "D:\\Development\\Projekte\\MiSTeryNano\\doc\\atarilogo.jpg",
+  "EmbossImageThreshold": 128,
+  "EmbossImageInvert": false,
+  "EmbossRaisedByNodeId": null,
+  "GridModeIndex": 18,
+  "SelectedPrinterId": "PRUSA_CORE_ONE",
+  "CustomBedX": 250,
+  "CustomBedY": 220,
+  "CustomBedZ": 270,
+  "BedEditAdjustments": null,
+  "AutoCutLayout": null,
+  "CreatedAtUtc": "2026-10-16T16:50:52.1971452Z",
+  "LastModifiedUtc": "2026-10-16T16:50:52.1971452Z",
+  "StlMaidVersion": "1.60.0.0",
+  "LastSlicerExePath": "C:\\Program Files\\Prusa3D\\PrusaSlicer\\prusa-slicer.exe",
+  "SaveCount": 1,
+  "SessionState": {
+    "SelectedPartId": "P01",
+    "CurrentMode": "View",
+    "AutoCutBedLayoutView": false,
+    "IsBedEditModeActive": false,
+    "BedEditPartId": null,
+    "ShowCutPlanePreview": false,
+    "ShowRotationHandles": false,
+    "CutPercent": 50,
+    "CutOffsetMm": 0.7,
+    "CutAngleDeg": 0,
+    "RotationAngle1Deg": 0,
+    "RotationAngle2Deg": 0,
+    "CutPlaneSize": 117.73432835820897,
+    "CutPlaneSizeU": 117.73432835820897,
+    "CutPlaneSizeV": 117.73432835820897,
+    "SelectedRotateAxis": "Z",
+    "ActiveRotationHandle": 0,
+    "ShowGrid": true,
+    "ShowAxes": true,
+    "ShowBodyLabels": false,
+    "ShowAutoCutOptions": false,
+    "AutoRepairAfterCut": false,
+    "UseSelectiveCapping": false,
+    "MaxCapAreaPercent": 20,
+    "SupportRemovalMinTriangles": 8,
+    "SupportRemovalRelativePercent": 1
+  },
+  "UndoHistory": [
+    {
+      "Label": "Silhouette extrudieren",
+      "TimestampUtc": "2026-10-16T16:50:02.834416Z",
+      "BodyScalePercent": 100,
+      "BodyScaleAppliedPercent": 100,
+      "Roots": [],
+      "Adjustments": []
+    }
+  ],
+  "RedoHistory": []
+}
