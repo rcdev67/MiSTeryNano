@@ -88,7 +88,11 @@
       <list label="Serial:" id="E" default="0">
 	<listentry label="Companion" value="0"/>
 	<listentry label="Ext. UART" value="1"/>
-	<listentry label="Netz" value="2"/>
+	<!-- role="netport": tells the companion that this entry routes the
+	     M0S connector to its own port 1, so it does not have to know
+	     that the id happens to be "E" here. Other cores use "E" for
+	     something else entirely. -->
+	<listentry label="Netz" value="2" role="netport"/>
       </list>
       <list label="TOS Slot:" id="T" default="0">
 	<listentry label="Primary" value="0"/>
