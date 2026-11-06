@@ -44,7 +44,9 @@ This fork is what runs on my Tang Nano 20K with the onboard BL616 and the
   change and drives joystick port 1, whatever the Serial setting.
 
 Everything upstream still works as before; the additions are off until
-selected in the OSD. Details are in the commit messages.
+selected in the OSD. Details are in the commit messages. What the whole
+setup does better and worse than upstream, for both machines, is in
+[MISTrcdev/DIFFERENCES.md](https://github.com/rcdev67/MISTrcdev/blob/main/DIFFERENCES.md).
 
 The board comes in two versions, 3921 and 3923; the core is the same for
 both, the companion image is not, see
